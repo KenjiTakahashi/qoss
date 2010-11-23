@@ -2,9 +2,6 @@
 #define BACKEND_H
 
 #define MAX_DEVS 16
-#define MONO 1
-#define STEREO 2
-#define MUTE 0
 
 using namespace std;
 
@@ -22,25 +19,34 @@ using namespace std;
 #include </usr/lib/oss/include/sys/soundcard.h>
 #include <sys/ioctl.h>
 
+typedef struct EXT_DATA {
+    vector<int> values;
+    int mute_value;
+} ext_data;
+
 typedef struct DATA {
     string name;
     int minvalue;
     int maxvalue;
-    int type; // MONO || STEREO || MUTE
     vector<int> values;
+    int mute_value;
+    vector<string> mode_values;
+    map<string, ext_data> ext;
 } data;
 
 class backend
 {
 public:
     backend();
-    void get_local_dev_info(map<string, map<string, map<string, vector<data> > > >& results, int dev);
+    void get_local_dev_info(map<string, map<string, data> >& results, int dev);
     string get_error();
 
 private:
     int find_default_mixer();
     void init_local_fd(int dev);
-    void read_control_values(int dev, oss_mixext& extinfo, data& d);
+    vector<int> read_control_values(int dev, oss_mixext& extinfo);
+    int get_mute_value(int dev, oss_mixext& extinfo);
+    vector<string> get_mode_values(int dev, oss_mixext& extinfo);
     void split(const string& s, char delimiter, vector<string>& result);
 
     int local_fd[MAX_DEVS];
