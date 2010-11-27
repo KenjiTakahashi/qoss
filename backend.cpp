@@ -59,7 +59,6 @@ void backend::get_local_dev_info(map<string, map<string, data> >& results, int d
             oss_mixext extinfo;
             extinfo.dev = dev;
             extinfo.ctrl = i;
-            data d;
             if(ioctl(local_fd[dev], SNDCTL_MIX_EXTINFO, &extinfo) == -1) {
                 error = "Error getting extended mixer info";
             } else {
@@ -82,19 +81,22 @@ void backend::get_local_dev_info(map<string, map<string, data> >& results, int d
                             }
                         }
                     } else {
-                        d.name = extinfo.extname;
-                        d.minvalue = extinfo.minvalue;
-                        d.maxvalue = extinfo.maxvalue;
-                        d.values = read_control_values(dev, extinfo);
-                        switch(chain.size()) {
-                            case 1:
-                            results[chain[0]][""] = d;
-                            break;
-                            case 2:
-                            results[chain[0]][chain[1]] = d;
-                            break;
-                            default:
-                            break;
+                        if(chain.size() == 1) {
+                            chain.push_back("");
+                        }
+                        vector<string> chain2;
+                        split(chain[1], '-', chain2);
+                        if(chain2.size() == 2 && chain2[1] == "mute") {
+                            cout << chain2[0] << endl;
+                            results[chain[0]][chain2[0]].mute_value = get_mute_value(dev, extinfo);
+                        } else {
+                            results[chain[0]][chain[1]].minvalue = extinfo.minvalue;
+                            results[chain[0]][chain[1]].maxvalue = extinfo.maxvalue;
+                            if(extinfo.type == MIXT_ENUM) {
+                                results[chain[0]][chain[1]].mode_values = get_mode_values(dev, extinfo);
+                            } else {
+                                results[chain[0]][chain[1]].values = read_control_values(dev, extinfo);
+                            }
                         }
                     }
                 }
