@@ -87,9 +87,9 @@ void backend::get_local_dev_info(map<string, map<string, data> >& results, int d
                         vector<string> chain2;
                         split(chain[1], '-', chain2);
                         if(chain2.size() == 2 && chain2[1] == "mute") {
-                            cout << chain2[0] << endl;
                             results[chain[0]][chain2[0]].mute_value = get_mute_value(dev, extinfo);
                         } else {
+                            results[chain[0]][chain[1]].ctrl = i;
                             results[chain[0]][chain[1]].minvalue = extinfo.minvalue;
                             results[chain[0]][chain[1]].maxvalue = extinfo.maxvalue;
                             if(extinfo.type == MIXT_ENUM) {

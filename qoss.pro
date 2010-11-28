@@ -12,9 +12,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         frontend.cpp \
-    backend.cpp
+    backend.cpp \
+    middleend.cpp
 
 HEADERS  += frontend.h \
-    backend.h
+    backend.h \
+    middleend.h
 
 FORMS    += frontend.ui

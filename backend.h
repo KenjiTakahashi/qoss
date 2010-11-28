@@ -25,6 +25,7 @@ typedef struct EXT_DATA {
 } ext_data;
 
 typedef struct DATA {
+    int ctrl;
     int minvalue;
     int maxvalue;
     vector<int> values;
