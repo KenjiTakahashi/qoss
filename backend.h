@@ -25,12 +25,12 @@ typedef struct EXT_DATA {
 } ext_data;
 
 typedef struct DATA {
-    int ctrl;
     int minvalue;
     int maxvalue;
     vector<int> values;
     int mute_value;
     vector<string> mode_values;
+    int current_mode;
     map<string, ext_data> ext;
 } data;
 
@@ -38,21 +38,21 @@ class backend
 {
 public:
     backend();
-    void get_local_dev_info(map<string, map<string, data> >& results, int dev);
+    void get_local_dev_info(map<string, map<string, map<string, data> > >& results);
     string get_error();
+    map<string, vector<oss_mixext> > g_extinfo; // make it private!
 
 private:
-    int find_default_mixer();
     void init_local_fd(int dev);
-    vector<int> read_control_values(int dev, oss_mixext& extinfo);
+    void init_extinfo(int dev);
+    vector<int> get_control_values(int dev, oss_mixext& extinfo);
     int get_mute_value(int dev, oss_mixext& extinfo);
     vector<string> get_mode_values(int dev, oss_mixext& extinfo);
+    int get_current_mode(int dev, oss_mixext& extinfo);
     void split(const string& s, char delimiter, vector<string>& result);
 
     int local_fd[MAX_DEVS];
     int global_fd;
-    int dev;
-    int mix_num;
     string error;
 };
 
