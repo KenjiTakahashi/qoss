@@ -3,9 +3,6 @@
 backend::backend() {
     const char* devmixer;
     global_fd = -1;
-    for(int i = 0; i < MAX_DEVS; ++i) {
-        local_fd[i] = -1;
-    }
     if((devmixer = getenv("OSS_MIXERDEV")) == NULL) {
         devmixer = "/dev/mixer";
     }
@@ -23,6 +20,22 @@ backend::backend() {
         for(int i = 0; i < mix_num; ++i) {
             init_local_fd(i);
             init_extinfo(i);
+        }
+    }
+}
+void backend::init_local_fd(int dev) {
+    int fd;
+    oss_mixerinfo mi;
+    if(dev < 0) {
+        error = "Bad mixer device handler received!";
+    } else if(find(local_fd.begin(), local_fd.end(), dev) == local_fd.end()) {
+        mi.dev = dev;
+        if((ioctl(global_fd, SNDCTL_MIXERINFO, &mi)) == -1) {
+            error = "Error getting mixer info!";
+        } else if((fd = open(mi.devnode, O_RDWR, 0)) == -1) {
+            error = mi.devnode;
+        } else {
+            local_fd.push_back(fd);
         }
     }
 }
@@ -56,18 +69,19 @@ void backend::get_local_dev_info(map<string, map<string, map<string, data> > >& 
                 vector<string> chain;
                 split(extinfo[i].extname, '.', chain);
                 if(chain.size() == 3) {
+                    results[name][chain[0]][chain[1]].i = i;
                     if(chain[2] == "mute") {
-                        results[name][chain[0]][chain[1]].mute_value = get_mute_value(dev, extinfo[i]);
+                        results[name][chain[0]][chain[1]].mute_value = read_mute_value(dev, extinfo[i]);
                     } else if(chain[2] == "mode") {
-                        results[name][chain[0]][chain[1]].mode_values = get_mode_values(dev, extinfo[i]);
-                        results[name][chain[0]][chain[1]].current_mode = get_current_mode(dev, extinfo[i]);
+                        results[name][chain[0]][chain[1]].mode_values = read_mode_values(dev, extinfo[i]);
+                        results[name][chain[0]][chain[1]].current_mode = read_current_mode(dev, extinfo[i]);
                     } else {
                         vector<string> chain2;
                         split(chain[2], '-', chain2);
                         if(chain2.size() == 1) {
-                            results[name][chain[0]][chain[1]].ext[chain2[0]].values = get_control_values(dev, extinfo[i]);
+                            results[name][chain[0]][chain[1]].ext[chain2[0]].values = read_control_values(dev, extinfo[i]);
                         } else {
-                            results[name][chain[0]][chain[1]].ext[chain2[0]].mute_value = get_mute_value(dev, extinfo[i]);
+                            results[name][chain[0]][chain[1]].ext[chain2[0]].mute_value = read_mute_value(dev, extinfo[i]);
                         }
                     }
                 } else {
@@ -77,15 +91,16 @@ void backend::get_local_dev_info(map<string, map<string, map<string, data> > >& 
                     vector<string> chain2;
                     split(chain[1], '-', chain2);
                     if(chain2.size() == 2 && chain2[1] == "mute") {
-                        results[name][chain[0]][chain2[0]].mute_value = get_mute_value(dev, extinfo[i]);
+                        results[name][chain[0]][chain2[0]].mute_value = read_mute_value(dev, extinfo[i]);
                     } else {
+                        results[name][chain[0]][chain[1]].i = i;
                         results[name][chain[0]][chain[1]].minvalue = extinfo[i].minvalue;
                         results[name][chain[0]][chain[1]].maxvalue = extinfo[i].maxvalue;
                         if(extinfo[i].type == MIXT_ENUM) {
-                            results[name][chain[0]][chain[1]].mode_values = get_mode_values(dev, extinfo[i]);
-                            results[name][chain[0]][chain[1]].current_mode = get_current_mode(dev, extinfo[i]);
+                            results[name][chain[0]][chain[1]].mode_values = read_mode_values(dev, extinfo[i]);
+                            results[name][chain[0]][chain[1]].current_mode = read_current_mode(dev, extinfo[i]);
                         } else {
-                            results[name][chain[0]][chain[1]].values = get_control_values(dev, extinfo[i]);
+                            results[name][chain[0]][chain[1]].values = read_control_values(dev, extinfo[i]);
                         }
                     }
                 }
@@ -93,23 +108,50 @@ void backend::get_local_dev_info(map<string, map<string, map<string, data> > >& 
         }
     }
 }
-void backend::init_local_fd(int dev) {
-    int fd;
-    oss_mixerinfo mi;
-    if(dev < 0 || dev >= MAX_DEVS) {
-        error = "Bad mixer device handler received!";
-    } else if(!(local_fd[dev] != -1)) {
-        mi.dev = dev;
-        if((ioctl(global_fd, SNDCTL_MIXERINFO, &mi)) == -1) {
-            error = "Error getting mixer info!";
-        } else if((fd = open(mi.devnode, O_RDWR, 0)) == -1) {
-            error = mi.devnode;
-        } else {
-            local_fd[dev] = fd;
+vector<int> backend::get_control_values(string dev, int i) {
+    oss_mixext t_extinfo = g_extinfo[dev][i];
+    return read_control_values(t_extinfo.dev, t_extinfo);
+}
+int backend::get_mute_value(string dev, int i) {
+    oss_mixext t_extinfo = g_extinfo[dev][i];
+    return read_mute_value(t_extinfo.dev, t_extinfo);
+}
+int backend::get_current_mode(string dev, int i) {
+    oss_mixext t_extinfo = g_extinfo[dev][i];
+    return read_current_mode(t_extinfo.dev, t_extinfo);
+}
+vector<string> backend::get_mode_values(string dev, int i) {
+    oss_mixext t_extinfo = g_extinfo[dev][i];
+    return read_mode_values(t_extinfo.dev, t_extinfo);
+}
+vector<int> backend::get_peak_values(string dev, int i) {
+    oss_mixext t_extinfo = g_extinfo[dev][i];
+    oss_mixer_value v;
+    v.dev = t_extinfo.dev;
+    v.ctrl = t_extinfo.ctrl;
+    v.timestamp = t_extinfo.timestamp;
+    vector<int> results;
+    if(ioctl(local_fd[t_extinfo.dev], SNDCTL_MIX_READ, &v) == -1) {
+        if(errno == EIDRM) {
+            //reload
+        }
+    } else {
+        switch(t_extinfo.type) {
+            case MIXT_MONOPEAK:
+            results.push_back(v.value & 0xff);
+            break;
+            case MIXT_STEREOPEAK:
+            cout << t_extinfo.extname;
+            results.push_back(t_extinfo.maxvalue - (v.value & 0xff));
+            results.push_back(t_extinfo.maxvalue - ((v.value >> 8) & 0xff));
+            break;
+            default:
+            break;
         }
     }
+    return results;
 }
-int backend::get_mute_value(int dev, oss_mixext &extinfo) {
+int backend::read_mute_value(int dev, oss_mixext &extinfo) {
     oss_mixer_value v;
     v.dev = extinfo.dev;
     v.ctrl = extinfo.ctrl;
@@ -123,7 +165,7 @@ int backend::get_mute_value(int dev, oss_mixext &extinfo) {
     }
     return -1;
 }
-vector<string> backend::get_mode_values(int dev, oss_mixext &extinfo) {
+vector<string> backend::read_mode_values(int dev, oss_mixext &extinfo) {
     oss_mixer_enuminfo ei;
     ei.dev = extinfo.dev;
     ei.ctrl = extinfo.ctrl;
@@ -143,7 +185,7 @@ vector<string> backend::get_mode_values(int dev, oss_mixext &extinfo) {
     }
     return results;
 }
-int backend::get_current_mode(int dev, oss_mixext &extinfo) {
+int backend::read_current_mode(int dev, oss_mixext &extinfo) {
     oss_mixer_value v;
     v.dev = extinfo.dev;
     v.ctrl = extinfo.ctrl;
@@ -158,7 +200,7 @@ int backend::get_current_mode(int dev, oss_mixext &extinfo) {
     }
     return value;
 }
-vector<int> backend::get_control_values(int dev, oss_mixext& extinfo) {
+vector<int> backend::read_control_values(int dev, oss_mixext& extinfo) {
     oss_mixer_value v;
     v.dev = extinfo.dev;
     v.ctrl = extinfo.ctrl;
