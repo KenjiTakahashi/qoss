@@ -1,20 +1,15 @@
 #include <QtGui/QApplication>
 #include "frontend.h"
 
-#include "backend.h"
-
 //temp includes, remove them after testing done!
+#include "backend.h"
+#include "middleend.h"
 #include <string.h>
 #include <iostream>
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
-//    QApplication a(argc, argv);
-//    frontend w;
-//    w.show();
-//
-//    return a.exec();
     backend* b=new backend();
     map<string, map<string, map<string, data> > > results;
     string error = b->get_error();
@@ -57,4 +52,14 @@ int main(int argc, char *argv[]) {
             cin >> input;
         } while(input != 'd');
     }
+    QApplication a(argc, argv);
+//    frontend w;
+    QMainWindow w;
+    QStringList v;
+    v << "LOL" << "OLDW";
+    QOSSSlider *qossslider = new QOSSSlider(STEREO, 0, 100, v);
+    w.setCentralWidget(qossslider);
+    w.show();
+
+    return a.exec();
 }
