@@ -88,13 +88,10 @@ void backend::get_local_dev_info(map<string, map<string, map<string, ossdata> > 
                 if(chain.size() == 3) {
                     if(chain[2] == "mute") {
                         results[name][chain[0]][chain[1]].mute_i = i;
-                        //results[name][chain[0]][chain[1]].mute_value = read_mute_value(dev, extinfo[i]);
                     } else if(chain[2] == "mode") {
                         results[name][chain[0]][chain[1]].mode_i = i;
-                        results[name][chain[0]][chain[1]].mode_values = read_mode_values(dev, extinfo[i]);
-                        //results[name][chain[0]][chain[1]].current_mode = read_current_mode(dev, extinfo[i]);
+                        results[name][chain[0]][chain[1]].modes = read_mode_values(dev, extinfo[i]);
                     } else {
-                        results[name][chain[0]][chain[1]].i = i;
                         vector<string> chain2;
                         split(chain[2], '-', chain2);
                         if(chain2.size() == 1) {
@@ -111,17 +108,28 @@ void backend::get_local_dev_info(map<string, map<string, map<string, ossdata> > 
                     split(chain[1], '-', chain2);
                     if(chain2.size() == 2 && chain2[1] == "mute") {
                         results[name][chain[0]][chain2[0]].mute_i = i;
-                        //results[name][chain[0]][chain2[0]].mute_value = read_mute_value(dev, extinfo[i]);
                     } else {
                         results[name][chain[0]][chain[1]].i = i;
                         results[name][chain[0]][chain[1]].minvalue = extinfo[i].minvalue;
                         results[name][chain[0]][chain[1]].maxvalue = extinfo[i].maxvalue;
+                        int type = extinfo[i].type;
+                        if(type == MIXT_STEREOSLIDER16 || type == MIXT_STEREOSLIDER) {
+                            results[name][chain[0]][chain[1]].type = STEREO;
+                        } else if(type == MIXT_MONOSLIDER16 || type == MIXT_MONOSLIDER) {
+                            results[name][chain[0]][chain[1]].type = MONO;
+                        } else {
+                            results[name][chain[0]][chain[1]].type = OTHER;
+                        }
+                        if(type == MIXT_STEREOPEAK) {
+                            results[name][chain[0]][chain[1]].peak = STEREO;
+                        } else if(type == MIXT_MONOPEAK) {
+                            results[name][chain[0]][chain[1]].peak = MONO;
+                        } else {
+                            results[name][chain[0]][chain[1]].peak = NONE;
+                        }
                         if(extinfo[i].type == MIXT_ENUM) {
                             results[name][chain[0]][chain[1]].mode_i = i;
-                            results[name][chain[0]][chain[1]].mode_values = read_mode_values(dev, extinfo[i]);
-                            //results[name][chain[0]][chain[1]].current_mode = read_current_mode(dev, extinfo[i]);
-                        //} else {
-                        //    results[name][chain[0]][chain[1]].values = read_control_values(dev, extinfo[i]);
+                            results[name][chain[0]][chain[1]].modes = read_mode_values(dev, extinfo[i]);
                         }
                     }
                 }

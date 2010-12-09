@@ -18,10 +18,11 @@
 #include "middleend.h"
 
 QOSSWidget::QOSSWidget(
-        unsigned int type_,
-        bool peak_,
-        unsigned int min,
-        unsigned int max,
+        int type_,
+        int peak_,
+        QMap<QString, int> is,
+        int min,
+        int max,
         QString title,
         QStringList modes,
         QWidget *parent) : QGroupBox(parent) {
@@ -31,7 +32,7 @@ QOSSWidget::QOSSWidget(
     peak = peak_;
     locked = false;
     QHBoxLayout *layout = new QHBoxLayout();
-    if(peak) {
+    if(peak != NONE) {
         QProgressBar *peak = new QProgressBar();
         peak->setOrientation(Qt::Vertical);
         layout->addWidget(peak);
@@ -60,11 +61,11 @@ QOSSWidget::QOSSWidget(
         rightLayout->addWidget(slider_right);
         rightLayout->setAlignment(slider_right, Qt::AlignJustify);
         layout->addLayout(rightLayout);
-        if(peak) {
-            QProgressBar *peak_right = new QProgressBar();
-            peak_right->setOrientation(Qt::Vertical);
-            layout->addWidget(peak_right);
-        }
+    }
+    if(peak == STEREO) {
+        QProgressBar *peak_right = new QProgressBar();
+        peak_right->setOrientation(Qt::Vertical);
+        layout->addWidget(peak_right);
     }
     layout->addStretch();
     if(!modes.empty()) {
@@ -91,7 +92,7 @@ void QOSSWidget::setLocked(bool state) {
         QObjectList children = this->sender()->parent()->children();
         QSlider *left;
         QSlider *right;
-        if(peak) {
+        if(peak != NONE) {
             left = (QSlider*)children.at(3);
             right = (QSlider*)children.at(5);
         } else {
@@ -109,7 +110,7 @@ void QOSSWidget::updateValue(int value) {
     if(type == STEREO && locked) {
         // hardcoded at values are bad, but they're good anyway.
         QObjectList children = this->sender()->parent()->children();
-        if(peak) {
+        if(peak != NONE) {
             if(this->sender() == children.at(3)) {
                 ((QSlider*)children.at(5))->setValue(value);
             } else {
@@ -126,9 +127,78 @@ void QOSSWidget::updateValue(int value) {
     //remember to write actual value to driver!
 }
 
-QOSSStructure::QOSSStructure() {
-    this->setColumnCount(1);
-    this->setHeaderHidden(true);
+QOSSTreeWidgetItem::QOSSTreeWidgetItem(
+        QTreeWidgetItem *parent,
+        QString string,
+        int i_,
+        int mutei_,
+        int modei_,
+        int minvalue_,
+        int maxvalue_,
+        int type_,
+        int peak_,
+        QStringList modes_) : QTreeWidgetItem(parent, QStringList(string)) {
+    i = i_;
+    mutei = mutei_;
+    modei = modei_;
+    minvalue = minvalue_;
+    maxvalue = maxvalue_;
+    type = type_;
+    peak = peak_;
+    modes = modes_;
+}
+/* Let the horror begin! */
+void QOSSTreeWidgetItem::seti(int i_) {
+    i = i_;
+}
+int QOSSTreeWidgetItem::geti() {
+    return i;
+}
+void QOSSTreeWidgetItem::setmutei(int mutei_) {
+    mutei = mutei_;
+}
+int QOSSTreeWidgetItem::getmutei() {
+    return mutei;
+}
+void QOSSTreeWidgetItem::setmodei(int modei_) {
+    modei = modei_;
+}
+int QOSSTreeWidgetItem::getmodei() {
+    return modei;
+}
+void QOSSTreeWidgetItem::setminvalue(int minvalue_) {
+    minvalue = minvalue_;
+}
+int QOSSTreeWidgetItem::getminvalue() {
+    return minvalue;
+}
+void QOSSTreeWidgetItem::setmaxvalue(int maxvalue_) {
+    maxvalue = maxvalue_;
+}
+int QOSSTreeWidgetItem::getmaxvalue() {
+    return maxvalue;
+}
+void QOSSTreeWidgetItem::settype(int type_) {
+    type = type_;
+}
+int QOSSTreeWidgetItem::gettype() {
+    return type;
+}
+void QOSSTreeWidgetItem::setpeak(int peak_) {
+    peak = peak_;
+}
+int QOSSTreeWidgetItem::getpeak() {
+    return peak;
+}
+void QOSSTreeWidgetItem::setmodes(QStringList modes_) {
+    modes = modes_;
+}
+QStringList QOSSTreeWidgetItem::getmodes() {
+    return modes;
+}
+/* and now let it end */
+
+QOSSConfig::QOSSConfig() {
     b = new backend();
     map<string, map<string, map<string, ossdata> > > results;
     b->get_local_dev_info(results);
@@ -136,21 +206,79 @@ QOSSStructure::QOSSStructure() {
     if(!error.empty()) {
         cout << error; // do sth real
     } else {
+        QTreeWidget *tree = new QTreeWidget();
+        tree->setColumnCount(1);
+        tree->setHeaderHidden(true);
+        connect(tree, SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)),
+                this, SLOT(showQOSSWidget(QTreeWidgetItem*, QTreeWidgetItem*)));
         QList<QTreeWidgetItem*> items;
         for(map<string, map<string, map<string, ossdata> > >::iterator it = results.begin(); it != results.end(); ++it) {
             QTreeWidgetItem *parent = new QTreeWidgetItem(QStringList(QString::fromStdString(it->first)));
             map<string, map<string, ossdata> > results2 = it->second;
             for(map<string, map<string, ossdata> >::iterator it2 = results2.begin(); it2 != results2.end(); ++it2) {
-                QTreeWidgetItem *subparent = new QTreeWidgetItem(parent, QStringList(QString::fromStdString(it2->first)));
+                QOSSTreeWidgetItem *subparent = new QOSSTreeWidgetItem(parent, QString::fromStdString(it2->first));
                 map<string, ossdata> results3 = it2->second;
                 for(map<string, ossdata>::iterator it3 = results3.begin(); it3 != results3.end(); ++it3) {
+                    QStringList modes;
+                    for(unsigned int i = 0; i < it3->second.modes.size(); ++i) {
+                        modes.append(QString::fromStdString(it3->second.modes[i]));
+                    }
                     if(!(it3->first).empty()) {
-                        new QTreeWidgetItem(subparent, QStringList(QString::fromStdString(it3->first)));
+                        new QOSSTreeWidgetItem(
+                                subparent,
+                                QString::fromStdString(it3->first),
+                                it3->second.i,
+                                it3->second.mute_i,
+                                it3->second.mode_i,
+                                it3->second.minvalue,
+                                it3->second.maxvalue,
+                                it3->second.type,
+                                it3->second.peak,
+                                modes);
+                    } else {
+                        subparent->seti(it3->second.i);
+                        subparent->setmutei(it3->second.mute_i);
+                        subparent->setmodei(it3->second.mode_i);
+                        subparent->setminvalue(it3->second.minvalue);
+                        subparent->setmaxvalue(it3->second.maxvalue);
+                        subparent->settype(it3->second.type);
+                        subparent->setpeak(it3->second.peak);
+                        subparent->setmodes(modes);
                     }
                 }
             }
             items.append(parent);
         }
-        this->insertTopLevelItems(0, items);
+        tree->insertTopLevelItems(0, items);
+        layout = new QHBoxLayout();
+        QGroupBox *previewBox = new QGroupBox("Preview");
+        previewBox->setFixedWidth(200);
+        previewBox->setLayout(layout);
+        QHBoxLayout *layout2 = new QHBoxLayout();
+        layout2->addWidget(tree);
+        layout2->addWidget(previewBox);
+        this->setLayout(layout2);
+    }
+}
+void QOSSConfig::showQOSSWidget(QTreeWidgetItem *item, QTreeWidgetItem*) {
+    if(item->childCount() == 0) {
+        QOSSTreeWidgetItem* temp = (QOSSTreeWidgetItem*)item;
+        QMap<QString, int> is;
+        is["values"] = temp->geti();
+        is["mute"] = temp->getmutei();
+        is["modes"] = temp->getmodei();
+        QOSSWidget *widget = new QOSSWidget(temp->gettype(),
+                temp->getpeak(),
+                is,
+                temp->getminvalue(),
+                temp->getmaxvalue(),
+                temp->text(0),
+                temp->getmodes());
+        QLayoutItem *itemm;
+        if((itemm = layout->takeAt(0)) != 0) {
+            delete itemm->widget();
+            delete itemm;
+        }
+        layout->addWidget(widget);
     }
 }

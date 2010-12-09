@@ -44,10 +44,6 @@ int main(int argc, char *argv[]) {
                     map<string, ossdata> results2 = it->second;
                     for(map<string, ossdata>::iterator it2 = results2.begin(); it2 != results2.end(); ++it2) {
                         ossdata second = it2->second;
-                        //vector<int> r = b->get_peak_values(it3->first, second.i);
-                        //for(unsigned int i = 0; i < r.size(); ++i) {
-                        //    cout << r[i] << " ";
-                        //}
                         cout << it2->first << ":";
                         cout << " i: " << second.i;
                         //cout << " Maxvalue: " << second.maxvalue;
@@ -58,11 +54,8 @@ int main(int argc, char *argv[]) {
                         //    cout << second.mode_values[i];
                         //}
                         cout << " Mode i: " << second.mode_i;
-                        //cout << " Current mode: " << second.current_mode;
-                        //cout << " Values: ";
-                        //for(unsigned int i = 0; i < second.values.size(); ++i) {
-                        //    cout << second.values[i] << " ";
-                        //}
+                        cout << " Type: " << second.type;
+                        cout << " Peak: " << second.peak;
                         cout << endl;
                     }
                 }
@@ -73,19 +66,7 @@ int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
 //    frontend w;
     QMainWindow w;
-    //QStringList v;
-    //v << "LOL" << "OLDW";
-    //QWidget *widget = new QWidget();
-    //QHBoxLayout *layout = new QHBoxLayout();
-    //widget->setLayout(layout);
-    //QOSSSlider *qossslider = new QOSSSlider(STEREO, true, 0, 100, "test1", v);
-    //layout->addWidget(qossslider);
-    //QOSSSlider *slider2 = new QOSSSlider(STEREO, false, 0, 100, "test2", v);
-    //layout->addWidget(slider2);
-    //QOSSSlider *slider3 = new QOSSSlider(STEREO, false, 0, 100);
-    //layout->addWidget(slider3);
-    //w.setCentralWidget(widget);
-    QOSSStructure *structure = new QOSSStructure();
+    QOSSConfig *structure = new QOSSConfig();
     w.setCentralWidget(structure);
     w.show();
 

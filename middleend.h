@@ -18,15 +18,10 @@
 #ifndef MIDDLEEND_H
 #define MIDDLEEND_H
 
-#define MONO 1
-#define STEREO 2
-#define OTHER 0
-
 #include <QSlider>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QComboBox>
-#include <QStringList>
 #include <QIcon>
 #include <QPushButton>
 #include <QProgressBar>
@@ -37,36 +32,79 @@
 #include "backend.h"
 
 //temp
-#include <iostream>
 #include <QDebug>
 
 class QOSSWidget : public QGroupBox {
     Q_OBJECT
 public:
     explicit QOSSWidget(
-            unsigned int type_, /* MONO || STEREO || OTHER */
-            bool peak_,
-            unsigned int min,
-            unsigned int max,
+            int type_, /* MONO || STEREO || OTHER */
+            int peak_, /* MONO || STEREO || NONE */
+            QMap<QString, int> is, /* ["values", "mute", "modes"] nodes */
+            int min = 0,
+            int max = 0,
             QString title = "",
             QStringList modes = QStringList(),
             QWidget *parent = 0);
 private:
     bool locked;
-    unsigned int type;
-    bool peak;
+    int type;
+    int peak;
 private slots:
     void setLocked(bool);
 public slots:
     void updateValue(int);
 };
 
-class QOSSStructure : public QTreeWidget {
+class QOSSTreeWidgetItem : public QTreeWidgetItem {
+public:
+    explicit QOSSTreeWidgetItem(
+            QTreeWidgetItem *parent,
+            QString string,
+            int i_ = 0,
+            int mutei_ = 0,
+            int modei_ = 0,
+            int minvalue_ = 0,
+            int maxvalue_ = 0,
+            int type_ = OTHER, /* STEREO || MONO || OTHER */
+            int peak_ = NONE, /* STEREO || MONO || NONE */
+            QStringList modes_ = QStringList());
+    void seti(int i_);
+    int geti();
+    void setmutei(int mutei_);
+    int getmutei();
+    void setmodei(int modei_);
+    int getmodei();
+    void setminvalue(int minvalue_);
+    int getminvalue();
+    void setmaxvalue(int maxvalue_);
+    int getmaxvalue();
+    void settype(int type_);
+    int gettype();
+    void setpeak(int peak_);
+    int getpeak();
+    void setmodes(QStringList modes_);
+    QStringList getmodes();
+private:
+    int i;
+    int mutei;
+    int modei;
+    int minvalue;
+    int maxvalue;
+    int type;
+    int peak;
+    QStringList modes;
+};
+
+class QOSSConfig : public QWidget {
     Q_OBJECT
 public:
-    explicit QOSSStructure();
+    explicit QOSSConfig();
 private:
     backend *b;
+    QHBoxLayout *layout;
+public slots:
+    void showQOSSWidget(QTreeWidgetItem*, QTreeWidgetItem*);
 };
 
 #endif // MIDDLEEND_H

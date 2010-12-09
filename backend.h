@@ -18,6 +18,11 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
+#define STEREO 2
+#define MONO 1
+#define OTHER 0
+#define NONE 0
+
 using namespace std;
 
 #include <string>
@@ -39,11 +44,14 @@ typedef struct EXT_DATA {
 
 typedef struct OSSDATA {
     int i;
-    int minvalue;
-    int maxvalue;
     int mute_i;
     int mode_i;
-    vector<string> mode_values;
+    int minvalue;
+    int maxvalue;
+    // zajdel "limes inferior"
+    int type;
+    int peak;
+    vector<string> modes;
     map<string, ext_data> ext; // do sth with this!
 } ossdata;
 
