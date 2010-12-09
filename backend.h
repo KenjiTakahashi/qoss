@@ -37,22 +37,21 @@ typedef struct EXT_DATA {
     int mute_value;
 } ext_data;
 
-typedef struct DATA {
+typedef struct OSSDATA {
     int i;
     int minvalue;
     int maxvalue;
-    vector<int> values;
-    int mute_value;
+    int mute_i;
+    int mode_i;
     vector<string> mode_values;
-    int current_mode;
-    map<string, ext_data> ext;
-} data;
+    map<string, ext_data> ext; // do sth with this!
+} ossdata;
 
 class backend
 {
 public:
     backend();
-    void get_local_dev_info(map<string, map<string, map<string, data> > >& results);
+    void get_local_dev_info(map<string, map<string, map<string, ossdata> > >& results);
     vector<int> get_control_values(string dev, int i);
     int get_mute_value(string dev, int i);
     vector<string> get_mode_values(string dev, int i);

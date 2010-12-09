@@ -20,43 +20,53 @@
 
 #define MONO 1
 #define STEREO 2
+#define OTHER 0
 
-#include <QWidget>
 #include <QSlider>
-#include <QGridLayout>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QComboBox>
 #include <QStringList>
 #include <QIcon>
 #include <QPushButton>
 #include <QProgressBar>
+#include <QGroupBox>
+#include <QTreeWidget>
+#include <QList>
+
+#include "backend.h"
 
 //temp
 #include <iostream>
 #include <QDebug>
 
-class QOSSSlider : public QWidget {
+class QOSSWidget : public QGroupBox {
     Q_OBJECT
 public:
-    explicit QOSSSlider(
-            unsigned int type_, /* MONO || STEREO */
+    explicit QOSSWidget(
+            unsigned int type_, /* MONO || STEREO || OTHER */
+            bool peak_,
             unsigned int min,
             unsigned int max,
-            QStringList modes,
+            QString title = "",
+            QStringList modes = QStringList(),
             QWidget *parent = 0);
 private:
     bool locked;
     unsigned int type;
+    bool peak;
 private slots:
     void setLocked(bool);
 public slots:
-    void updateLeft(int);
-    void updateRight(int);
+    void updateValue(int);
 };
 
-class middleend
-{
+class QOSSStructure : public QTreeWidget {
+    Q_OBJECT
 public:
-    middleend();
+    explicit QOSSStructure();
+private:
+    backend *b;
 };
 
 #endif // MIDDLEEND_H

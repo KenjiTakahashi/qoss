@@ -17,66 +17,140 @@
  */
 #include "middleend.h"
 
-QOSSSlider::QOSSSlider(
+QOSSWidget::QOSSWidget(
         unsigned int type_,
+        bool peak_,
         unsigned int min,
         unsigned int max,
+        QString title,
         QStringList modes,
-        QWidget *parent) : QWidget(parent) {
+        QWidget *parent) : QGroupBox(parent) {
     // icons are not actually working :/
+    this->setTitle(title);
     type = type_;
-    QGridLayout *layout = new QGridLayout();
-    QProgressBar *peak = new QProgressBar();
-    peak->setOrientation(Qt::Vertical);
-    layout->addWidget(peak, 0, 0, 2, 1);
-    QSlider *slider = new QSlider();
-    slider->setRange(min, max);
-    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(updateLeft(int)));
-    layout->addWidget(slider, 1, 1);
-    layout->setAlignment(slider, Qt::AlignJustify);
+    peak = peak_;
+    locked = false;
+    QHBoxLayout *layout = new QHBoxLayout();
+    if(peak) {
+        QProgressBar *peak = new QProgressBar();
+        peak->setOrientation(Qt::Vertical);
+        layout->addWidget(peak);
+    }
+    QVBoxLayout *leftLayout = new QVBoxLayout();
     QPushButton *mute = new QPushButton(QIcon::fromTheme("audio-volume-muted"), ""); // what icon name here?:|
     mute->setCheckable(true);
     mute->setFixedWidth(24);
-    layout->addWidget(mute, 0, 1);
+    leftLayout->addWidget(mute);
+    QSlider *slider = new QSlider();
+    slider->setRange(min, max);
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(updateValue(int)));
+    leftLayout->addWidget(slider);
+    leftLayout->setAlignment(slider, Qt::AlignJustify);
+    layout->addLayout(leftLayout);
     if(type == STEREO) {
+        QVBoxLayout *rightLayout = new QVBoxLayout();
         QPushButton *lock = new QPushButton(QIcon::fromTheme("lock"), "");
         lock->setCheckable(true);
         lock->setFixedWidth(24);
         connect(lock, SIGNAL(toggled(bool)), this, SLOT(setLocked(bool)));
-        layout->addWidget(lock, 0, 2);
+        rightLayout->addWidget(lock);
         QSlider *slider_right = new QSlider();
         slider_right->setRange(min, max);
-        connect(slider_right, SIGNAL(valueChanged(int)), this, SLOT(updateRight(int)));
-        layout->addWidget(slider_right, 1, 2);
-        layout->setAlignment(slider_right, Qt::AlignJustify);
-        QProgressBar *peak_right = new QProgressBar();
-        peak_right->setOrientation(Qt::Vertical);
-        layout->addWidget(peak_right, 0, 3, 2, 4);
+        connect(slider_right, SIGNAL(valueChanged(int)), this, SLOT(updateValue(int)));
+        rightLayout->addWidget(slider_right);
+        rightLayout->setAlignment(slider_right, Qt::AlignJustify);
+        layout->addLayout(rightLayout);
+        if(peak) {
+            QProgressBar *peak_right = new QProgressBar();
+            peak_right->setOrientation(Qt::Vertical);
+            layout->addWidget(peak_right);
+        }
     }
+    layout->addStretch();
     if(!modes.empty()) {
         QComboBox *box = new QComboBox();
         box->addItems(modes);
-        box->setFixedWidth(110);
-        layout->addWidget(box, 2, 0, 3, 4);
+        QVBoxLayout *boxLayout = new QVBoxLayout();
+        layout->setContentsMargins(0, 0, 0, 0);
+        QWidget *lay = new QWidget();
+        lay->setLayout(layout);
+        boxLayout->addWidget(lay);
+        boxLayout->setAlignment(lay, Qt::AlignJustify);
+        boxLayout->addWidget(box);
+        QHBoxLayout *boxLayout2 = new QHBoxLayout();
+        boxLayout2->addLayout(boxLayout);
+        boxLayout2->addStretch(1);
+        this->setLayout(boxLayout2);
+    } else {
+        this->setLayout(layout);
     }
-    this->setLayout(layout);
 }
-void QOSSSlider::setLocked(bool state) {
+void QOSSWidget::setLocked(bool state) {
     locked = state;
+    if(locked) {
+        QObjectList children = this->sender()->parent()->children();
+        QSlider *left;
+        QSlider *right;
+        if(peak) {
+            left = (QSlider*)children.at(3);
+            right = (QSlider*)children.at(5);
+        } else {
+            left = (QSlider*)children.at(2);
+            right = (QSlider*)children.at(4);
+        }
+        if(left->value() < right->value()) {
+            left->setValue(right->value());
+        } else {
+            right->setValue(left->value());
+        }
+    }
 }
-void QOSSSlider::updateLeft(int value) {
+void QOSSWidget::updateValue(int value) {
     if(type == STEREO && locked) {
-        // hardcoded at value, because itemAtPosition returned 0x0 no matter what
-        ((QSlider*)((QGridLayout*)this->sender()->parent())->children().at(5))->setValue(value);
+        // hardcoded at values are bad, but they're good anyway.
+        QObjectList children = this->sender()->parent()->children();
+        if(peak) {
+            if(this->sender() == children.at(3)) {
+                ((QSlider*)children.at(5))->setValue(value);
+            } else {
+                ((QSlider*)children.at(3))->setValue(value);
+            }
+        } else {
+            if(this->sender() == children.at(2)) {
+                ((QSlider*)children.at(4))->setValue(value);
+            } else {
+                ((QSlider*)children.at(2))->setValue(value);
+            }
+        }
     }
     //remember to write actual value to driver!
 }
-void QOSSSlider::updateRight(int value) {
-    if(type == STEREO && locked) {
-        ((QSlider*)((QGridLayout*)this->sender()->parent())->children().at(2))->setValue(value);
-    }
-}
 
-middleend::middleend()
-{
+QOSSStructure::QOSSStructure() {
+    this->setColumnCount(1);
+    this->setHeaderHidden(true);
+    b = new backend();
+    map<string, map<string, map<string, ossdata> > > results;
+    b->get_local_dev_info(results);
+    string error = b->get_error();
+    if(!error.empty()) {
+        cout << error; // do sth real
+    } else {
+        QList<QTreeWidgetItem*> items;
+        for(map<string, map<string, map<string, ossdata> > >::iterator it = results.begin(); it != results.end(); ++it) {
+            QTreeWidgetItem *parent = new QTreeWidgetItem(QStringList(QString::fromStdString(it->first)));
+            map<string, map<string, ossdata> > results2 = it->second;
+            for(map<string, map<string, ossdata> >::iterator it2 = results2.begin(); it2 != results2.end(); ++it2) {
+                QTreeWidgetItem *subparent = new QTreeWidgetItem(parent, QStringList(QString::fromStdString(it2->first)));
+                map<string, ossdata> results3 = it2->second;
+                for(map<string, ossdata>::iterator it3 = results3.begin(); it3 != results3.end(); ++it3) {
+                    if(!(it3->first).empty()) {
+                        new QTreeWidgetItem(subparent, QStringList(QString::fromStdString(it3->first)));
+                    }
+                }
+            }
+            items.append(parent);
+        }
+        this->insertTopLevelItems(0, items);
+    }
 }
