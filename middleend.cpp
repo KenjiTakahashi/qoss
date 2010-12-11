@@ -19,27 +19,68 @@
 
 QOSSWatcher::QOSSWatcher(
         QList<bool> switches,
-        int i_,
+        QMap<QString, int> is_,
         string dev_,
         QObject *parent) : QThread(parent) {
+    values = switches[0];
     mute = switches[1];
-    muteValue = false;
-    i = i_;
+    modes = switches[2];
+    is = is_;
     dev = dev_;
+    alive = true;
 }
 void QOSSWatcher::run() {
-    if(mute) {
-        int tempValue = backend_handler->get_mute_value(dev, i);
-        if(tempValue != muteValue) {
-            muteValue = tempValue;
-            emit(SIGNAL(muteUpdated(int)), muteValue);
+    this->setPriority(QThread::IdlePriority);
+    while(alive) {
+        if(values) {
+            vector<int> tempValue = backend_handler->get_control_values(dev, is["values"]);
+            int tempLeft = tempValue[0];
+            if(tempLeft != leftValue) {
+                leftValue = tempLeft;
+                emit leftValueChanged(leftValue);
+            }
+            if(tempValue.size() == 2) {
+                int tempRight = tempValue[1]; 
+                if(tempRight != rightValue) {
+                    rightValue = tempRight;
+                    emit rightValueChanged(rightValue);
+                }
+            }
+        }
+        if(mute) {
+            int tempValue = backend_handler->get_mute_value(dev, is["mute"]);
+            bool ttempValue;
+            switch(tempValue) {
+                case 0:
+                case -1:
+                ttempValue = false;
+                break;
+                default:
+                ttempValue = true;
+                break;
+            }
+            if(ttempValue != muteValue) {
+                muteValue = ttempValue;
+                emit muteChanged(muteValue);
+            }
+        }
+        if(modes) {
+            int tempValue = backend_handler->get_current_mode(dev, is["modes"]);
+            if(tempValue != modeValue) {
+                modeValue = tempValue;
+                emit modeChanged(modeValue);
+            }
         }
     }
+}
+void QOSSWatcher::terminate() {
+    alive = false;
 }
 
 QOSSWidget::QOSSWidget(
         int type_,
         int peak_,
+        string dev,
         QMap<QString, int> is,
         int min,
         int max,
@@ -51,6 +92,9 @@ QOSSWidget::QOSSWidget(
     type = type_;
     peak = peak_;
     locked = false;
+    QList<bool> list;
+    list << (type == OTHER ? false : true) << true << (!modes.empty() ? true : false);
+    watcher = new QOSSWatcher(list, is, dev);
     QHBoxLayout *layout = new QHBoxLayout();
     if(peak != NONE) {
         QProgressBar *peak = new QProgressBar();
@@ -61,9 +105,11 @@ QOSSWidget::QOSSWidget(
     QPushButton *mute = new QPushButton(QIcon::fromTheme("audio-volume-muted"), ""); // what icon name here?:|
     mute->setCheckable(true);
     mute->setFixedWidth(24);
+    connect(watcher, SIGNAL(muteChanged(bool)), mute, SLOT(setChecked(bool)));
     leftLayout->addWidget(mute);
     QSlider *slider = new QSlider();
     slider->setRange(min, max);
+    connect(watcher, SIGNAL(leftValueChanged(int)), slider, SLOT(setValue(int)));
     connect(slider, SIGNAL(valueChanged(int)), this, SLOT(updateValue(int)));
     leftLayout->addWidget(slider);
     leftLayout->setAlignment(slider, Qt::AlignJustify);
@@ -77,6 +123,7 @@ QOSSWidget::QOSSWidget(
         rightLayout->addWidget(lock);
         QSlider *slider_right = new QSlider();
         slider_right->setRange(min, max);
+        connect(watcher, SIGNAL(rightValueChanged(int)), slider_right, SLOT(setValue(int)));
         connect(slider_right, SIGNAL(valueChanged(int)), this, SLOT(updateValue(int)));
         rightLayout->addWidget(slider_right);
         rightLayout->setAlignment(slider_right, Qt::AlignJustify);
@@ -91,6 +138,7 @@ QOSSWidget::QOSSWidget(
     if(!modes.empty()) {
         QComboBox *box = new QComboBox();
         box->addItems(modes);
+        connect(watcher, SIGNAL(modeChanged(int)), box, SLOT(setCurrentIndex(int)));
         QVBoxLayout *boxLayout = new QVBoxLayout();
         layout->setContentsMargins(0, 0, 0, 0);
         QWidget *lay = new QWidget();
@@ -105,6 +153,10 @@ QOSSWidget::QOSSWidget(
     } else {
         this->setLayout(layout);
     }
+    watcher->start();
+}
+QOSSWidget::~QOSSWidget() {
+    watcher->terminate();
 }
 void QOSSWidget::setLocked(bool state) {
     locked = state;
@@ -178,6 +230,7 @@ QOSSConfig::QOSSConfig(QWidget *parent) : QWidget(parent) {
                     }
                     if(!(it3->first).empty()) {
                         QOSSTreeWidgetItem *child = new QOSSTreeWidgetItem(subparent, QString::fromStdString(it3->first));
+                        child->dev = it->first;
                         child->i = it3->second.i;
                         child->mutei = it3->second.mute_i;
                         child->modei = it3->second.mode_i;
@@ -187,6 +240,7 @@ QOSSConfig::QOSSConfig(QWidget *parent) : QWidget(parent) {
                         child->peak = it3->second.peak;
                         child->modes = modes;
                     } else {
+                        subparent->dev = it->first;
                         subparent->i = it3->second.i;
                         subparent->mutei = it3->second.mute_i;
                         subparent->modei = it3->second.mode_i;
@@ -220,6 +274,7 @@ void QOSSConfig::showQOSSWidget(QTreeWidgetItem *item, QTreeWidgetItem*) {
         is["modes"] = temp->modei;
         QOSSWidget *widget = new QOSSWidget(temp->type,
                 temp->peak,
+                temp->dev,
                 is,
                 temp->minvalue,
                 temp->maxvalue,

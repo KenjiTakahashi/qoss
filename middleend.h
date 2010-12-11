@@ -45,17 +45,27 @@ public:
             QList<bool> switches, /* [0] == values
                                      [1] == mute
                                      [2] == modes */
-            int i_,
+            QMap<QString, int> is_,
             string dev_,
             QObject *parent = 0);
     void run();
+    void terminate();
 private:
+    bool alive;
+    bool values;
     bool mute;
-    int muteValue;
-    int i;
+    bool modes;
+    int leftValue;
+    int rightValue;
+    bool muteValue;
+    int modeValue;
+    QMap<QString, int> is;
     string dev;
 signals:
-    void muteUpdated(int);
+    void leftValueChanged(int);
+    void rightValueChanged(int);
+    void muteChanged(bool);
+    void modeChanged(int);
 };
 
 class QOSSWidget : public QGroupBox {
@@ -64,13 +74,16 @@ public:
     explicit QOSSWidget(
             int type_, /* MONO || STEREO || OTHER */
             int peak_, /* MONO || STEREO || NONE */
+            string dev,
             QMap<QString, int> is, /* ["values", "mute", "modes"] nodes */
             int min = 0,
             int max = 0,
             QString title = "",
             QStringList modes = QStringList(),
             QWidget *parent = 0);
+    ~QOSSWidget();
 private:
+    QOSSWatcher *watcher;
     bool locked;
     int type;
     int peak;
@@ -83,6 +96,7 @@ public slots:
 class QOSSTreeWidgetItem : public QTreeWidgetItem {
 public:
     explicit QOSSTreeWidgetItem(QTreeWidgetItem *parent, QString string);
+    string dev;
     int i;
     int mutei;
     int modei;
