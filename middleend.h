@@ -28,11 +28,35 @@
 #include <QGroupBox>
 #include <QTreeWidget>
 #include <QList>
+#include <QThread>
 
 #include "backend.h"
 
 //temp
 #include <QDebug>
+
+static backend *backend_handler = new backend(); // yeah, yeah
+
+/* half-stoned class, no responsibility taken */
+class QOSSWatcher : public QThread {
+    Q_OBJECT
+public:
+    explicit QOSSWatcher(
+            QList<bool> switches, /* [0] == values
+                                     [1] == mute
+                                     [2] == modes */
+            int i_,
+            string dev_,
+            QObject *parent = 0);
+    void run();
+private:
+    bool mute;
+    int muteValue;
+    int i;
+    string dev;
+signals:
+    void muteUpdated(int);
+};
 
 class QOSSWidget : public QGroupBox {
     Q_OBJECT
@@ -58,34 +82,7 @@ public slots:
 
 class QOSSTreeWidgetItem : public QTreeWidgetItem {
 public:
-    explicit QOSSTreeWidgetItem(
-            QTreeWidgetItem *parent,
-            QString string,
-            int i_ = 0,
-            int mutei_ = 0,
-            int modei_ = 0,
-            int minvalue_ = 0,
-            int maxvalue_ = 0,
-            int type_ = OTHER, /* STEREO || MONO || OTHER */
-            int peak_ = NONE, /* STEREO || MONO || NONE */
-            QStringList modes_ = QStringList());
-    void seti(int i_);
-    int geti();
-    void setmutei(int mutei_);
-    int getmutei();
-    void setmodei(int modei_);
-    int getmodei();
-    void setminvalue(int minvalue_);
-    int getminvalue();
-    void setmaxvalue(int maxvalue_);
-    int getmaxvalue();
-    void settype(int type_);
-    int gettype();
-    void setpeak(int peak_);
-    int getpeak();
-    void setmodes(QStringList modes_);
-    QStringList getmodes();
-private:
+    explicit QOSSTreeWidgetItem(QTreeWidgetItem *parent, QString string);
     int i;
     int mutei;
     int modei;
@@ -99,9 +96,8 @@ private:
 class QOSSConfig : public QWidget {
     Q_OBJECT
 public:
-    explicit QOSSConfig();
+    explicit QOSSConfig(QWidget *parent = 0);
 private:
-    backend *b;
     QHBoxLayout *layout;
 public slots:
     void showQOSSWidget(QTreeWidgetItem*, QTreeWidgetItem*);

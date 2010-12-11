@@ -19,7 +19,6 @@
 #include "frontend.h"
 
 //temp includes, remove them after testing done!
-#include "backend.h"
 #include "middleend.h"
 #include <string.h>
 #include <iostream>
@@ -27,15 +26,14 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    backend* b=new backend();
     map<string, map<string, map<string, ossdata> > > results;
-    string error = b->get_error();
+    string error = backend_handler->get_error();
     char input;
     if(!error.empty()) {
         cout << error;
     } else {
         do {
-            b->get_local_dev_info(results);
+            backend_handler->get_local_dev_info(results);
             for(map<string, map<string, map<string, ossdata> > >::iterator it3 = results.begin(); it3 != results.end(); ++it3) {
                 cout << it3->first << endl;
                 map<string, map<string, ossdata> > results2 = it3->second;

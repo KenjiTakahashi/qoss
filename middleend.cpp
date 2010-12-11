@@ -17,6 +17,26 @@
  */
 #include "middleend.h"
 
+QOSSWatcher::QOSSWatcher(
+        QList<bool> switches,
+        int i_,
+        string dev_,
+        QObject *parent) : QThread(parent) {
+    mute = switches[1];
+    muteValue = false;
+    i = i_;
+    dev = dev_;
+}
+void QOSSWatcher::run() {
+    if(mute) {
+        int tempValue = backend_handler->get_mute_value(dev, i);
+        if(tempValue != muteValue) {
+            muteValue = tempValue;
+            emit(SIGNAL(muteUpdated(int)), muteValue);
+        }
+    }
+}
+
 QOSSWidget::QOSSWidget(
         int type_,
         int peak_,
@@ -129,80 +149,13 @@ void QOSSWidget::updateValue(int value) {
 
 QOSSTreeWidgetItem::QOSSTreeWidgetItem(
         QTreeWidgetItem *parent,
-        QString string,
-        int i_,
-        int mutei_,
-        int modei_,
-        int minvalue_,
-        int maxvalue_,
-        int type_,
-        int peak_,
-        QStringList modes_) : QTreeWidgetItem(parent, QStringList(string)) {
-    i = i_;
-    mutei = mutei_;
-    modei = modei_;
-    minvalue = minvalue_;
-    maxvalue = maxvalue_;
-    type = type_;
-    peak = peak_;
-    modes = modes_;
+        QString string) : QTreeWidgetItem(parent, QStringList(string)) {
 }
-/* Let the horror begin! */
-void QOSSTreeWidgetItem::seti(int i_) {
-    i = i_;
-}
-int QOSSTreeWidgetItem::geti() {
-    return i;
-}
-void QOSSTreeWidgetItem::setmutei(int mutei_) {
-    mutei = mutei_;
-}
-int QOSSTreeWidgetItem::getmutei() {
-    return mutei;
-}
-void QOSSTreeWidgetItem::setmodei(int modei_) {
-    modei = modei_;
-}
-int QOSSTreeWidgetItem::getmodei() {
-    return modei;
-}
-void QOSSTreeWidgetItem::setminvalue(int minvalue_) {
-    minvalue = minvalue_;
-}
-int QOSSTreeWidgetItem::getminvalue() {
-    return minvalue;
-}
-void QOSSTreeWidgetItem::setmaxvalue(int maxvalue_) {
-    maxvalue = maxvalue_;
-}
-int QOSSTreeWidgetItem::getmaxvalue() {
-    return maxvalue;
-}
-void QOSSTreeWidgetItem::settype(int type_) {
-    type = type_;
-}
-int QOSSTreeWidgetItem::gettype() {
-    return type;
-}
-void QOSSTreeWidgetItem::setpeak(int peak_) {
-    peak = peak_;
-}
-int QOSSTreeWidgetItem::getpeak() {
-    return peak;
-}
-void QOSSTreeWidgetItem::setmodes(QStringList modes_) {
-    modes = modes_;
-}
-QStringList QOSSTreeWidgetItem::getmodes() {
-    return modes;
-}
-/* and now let it end */
 
-QOSSConfig::QOSSConfig() {
-    b = new backend();
+QOSSConfig::QOSSConfig(QWidget *parent) : QWidget(parent) {
     map<string, map<string, map<string, ossdata> > > results;
-    b->get_local_dev_info(results);
-    string error = b->get_error();
+    backend_handler->get_local_dev_info(results);
+    string error = backend_handler->get_error();
     if(!error.empty()) {
         cout << error; // do sth real
     } else {
@@ -224,26 +177,24 @@ QOSSConfig::QOSSConfig() {
                         modes.append(QString::fromStdString(it3->second.modes[i]));
                     }
                     if(!(it3->first).empty()) {
-                        new QOSSTreeWidgetItem(
-                                subparent,
-                                QString::fromStdString(it3->first),
-                                it3->second.i,
-                                it3->second.mute_i,
-                                it3->second.mode_i,
-                                it3->second.minvalue,
-                                it3->second.maxvalue,
-                                it3->second.type,
-                                it3->second.peak,
-                                modes);
+                        QOSSTreeWidgetItem *child = new QOSSTreeWidgetItem(subparent, QString::fromStdString(it3->first));
+                        child->i = it3->second.i;
+                        child->mutei = it3->second.mute_i;
+                        child->modei = it3->second.mode_i;
+                        child->minvalue = it3->second.minvalue;
+                        child->maxvalue = it3->second.maxvalue;
+                        child->type = it3->second.type;
+                        child->peak = it3->second.peak;
+                        child->modes = modes;
                     } else {
-                        subparent->seti(it3->second.i);
-                        subparent->setmutei(it3->second.mute_i);
-                        subparent->setmodei(it3->second.mode_i);
-                        subparent->setminvalue(it3->second.minvalue);
-                        subparent->setmaxvalue(it3->second.maxvalue);
-                        subparent->settype(it3->second.type);
-                        subparent->setpeak(it3->second.peak);
-                        subparent->setmodes(modes);
+                        subparent->i = it3->second.i;
+                        subparent->mutei = it3->second.mute_i;
+                        subparent->modei = it3->second.mode_i;
+                        subparent->minvalue = it3->second.minvalue;
+                        subparent->maxvalue = it3->second.maxvalue;
+                        subparent->type = it3->second.type;
+                        subparent->peak = it3->second.peak;
+                        subparent->modes = modes;
                     }
                 }
             }
@@ -264,16 +215,16 @@ void QOSSConfig::showQOSSWidget(QTreeWidgetItem *item, QTreeWidgetItem*) {
     if(item->childCount() == 0) {
         QOSSTreeWidgetItem* temp = (QOSSTreeWidgetItem*)item;
         QMap<QString, int> is;
-        is["values"] = temp->geti();
-        is["mute"] = temp->getmutei();
-        is["modes"] = temp->getmodei();
-        QOSSWidget *widget = new QOSSWidget(temp->gettype(),
-                temp->getpeak(),
+        is["values"] = temp->i;
+        is["mute"] = temp->mutei;
+        is["modes"] = temp->modei;
+        QOSSWidget *widget = new QOSSWidget(temp->type,
+                temp->peak,
                 is,
-                temp->getminvalue(),
-                temp->getmaxvalue(),
+                temp->minvalue,
+                temp->maxvalue,
                 temp->text(0),
-                temp->getmodes());
+                temp->modes);
         QLayoutItem *itemm;
         if((itemm = layout->takeAt(0)) != 0) {
             delete itemm->widget();
