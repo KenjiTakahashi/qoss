@@ -170,7 +170,6 @@ vector<int> backend::get_peak_values(string dev, int i) {
             results.push_back(v.value & 0xff);
             break;
             case MIXT_STEREOPEAK:
-            cout << t_extinfo.extname;
             results.push_back(t_extinfo.maxvalue - (v.value & 0xff));
             results.push_back(t_extinfo.maxvalue - ((v.value >> 8) & 0xff));
             break;

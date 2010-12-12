@@ -44,7 +44,8 @@ public:
     explicit QOSSWatcher(
             QList<bool> switches, /* [0] == values
                                      [1] == mute
-                                     [2] == modes */
+                                     [2] == modes
+                                     [3] == peak */
             QMap<QString, int> is_,
             string dev_,
             QObject *parent = 0);
@@ -53,10 +54,13 @@ public:
 private:
     bool alive;
     bool values;
+    bool peak;
     bool mute;
     bool modes;
     int leftValue;
     int rightValue;
+    int leftPeak;
+    int rightPeak;
     bool muteValue;
     int modeValue;
     QMap<QString, int> is;
@@ -64,6 +68,8 @@ private:
 signals:
     void leftValueChanged(int);
     void rightValueChanged(int);
+    void leftPeakChanged(int);
+    void rightPeakChanged(int);
     void muteChanged(bool);
     void modeChanged(int);
 };

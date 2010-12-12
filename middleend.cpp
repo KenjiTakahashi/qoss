@@ -23,6 +23,7 @@ QOSSWatcher::QOSSWatcher(
         string dev_,
         QObject *parent) : QThread(parent) {
     values = switches[0];
+    peak = switches[3];
     mute = switches[1];
     modes = switches[2];
     is = is_;
@@ -44,6 +45,21 @@ void QOSSWatcher::run() {
                 if(tempRight != rightValue) {
                     rightValue = tempRight;
                     emit rightValueChanged(rightValue);
+                }
+            }
+        }
+        if(peak) {
+            vector<int> tempValue = backend_handler->get_peak_values(dev, is["values"]);
+            int tempLeft = tempValue[0];
+            if(tempLeft != leftPeak) {
+                leftPeak = tempLeft;
+                emit leftPeakChanged(leftPeak);
+            }
+            if(tempValue.size() == 2) {
+                int tempRight = tempValue[1];
+                if(tempRight != rightPeak) {
+                    rightPeak = tempRight;
+                    emit rightPeakChanged(rightPeak);
                 }
             }
         }
@@ -93,12 +109,15 @@ QOSSWidget::QOSSWidget(
     peak = peak_;
     locked = false;
     QList<bool> list;
-    list << (type == OTHER ? false : true) << true << (!modes.empty() ? true : false);
+    list << (type == OTHER ? false : true) << true;
+    list << (!modes.empty() ? true : false) << (peak == NONE ? false : true);
     watcher = new QOSSWatcher(list, is, dev);
     QHBoxLayout *layout = new QHBoxLayout();
     if(peak != NONE) {
         QProgressBar *peak = new QProgressBar();
         peak->setOrientation(Qt::Vertical);
+        peak->setTextVisible(false);
+        connect(watcher, SIGNAL(leftPeakChanged(int)), peak, SLOT(setValue(int)));
         layout->addWidget(peak);
     }
     QVBoxLayout *leftLayout = new QVBoxLayout();
@@ -132,6 +151,8 @@ QOSSWidget::QOSSWidget(
     if(peak == STEREO) {
         QProgressBar *peak_right = new QProgressBar();
         peak_right->setOrientation(Qt::Vertical);
+        peak_right->setTextVisible(false);
+        connect(watcher, SIGNAL(rightPeakChanged(int)), peak_right, SLOT(setValue(int)));
         layout->addWidget(peak_right);
     }
     layout->addStretch();
