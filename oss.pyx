@@ -42,6 +42,17 @@ cdef class OSS:
         if fd == -1:
             raise OSSError()
         return fd
+    cpdef list extinfo(self, int i, int fd):
+        cdef list tmp = list()
+        cdef coss.oss_mixext ei
+        cdef dict mi = self.__mixerinfo[i]
+        for k in range(mi['nrext']):
+            ei.dev = i
+            ei.ctrl = k
+            if coss.ioctl(fd, coss.SNDCTL_MIX_EXTINFO, &ei) == -1:
+                raise OSSError()
+            tmp.append(self.__convertExtinfo(ei))
+        return tmp
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
@@ -60,4 +71,23 @@ cdef class OSS:
         tmp['priority'] = mi.priority
         tmp['devnode'] = mi.devnode
         tmp['legacy_device'] = mi.legacy_device
+        return tmp
+    cdef dict __convertExtinfo(self, coss.oss_mixext ei):
+        cdef dict tmp = dict()
+        tmp['dev'] = ei.dev
+        tmp['ctrl'] = ei.ctrl
+        tmp['type'] = ei.type
+        tmp['maxvalue'] = ei.maxvalue
+        tmp['minvalue'] = ei.minvalue
+        tmp['flags'] = ei.flags
+        tmp['id'] = ei.id
+        tmp['parent'] = ei.parent
+        tmp['timestamp'] = ei.timestamp
+        tmp['data'] = ei.data
+        tmp['enum_present'] = <char*>ei.enum_present
+        tmp['control_no'] = ei.control_no
+        tmp['desc'] = ei.desc
+        tmp['extname'] = ei.extname
+        tmp['update_counter'] = ei.update_counter
+        tmp['rgbcolor'] = ei.rgbcolor
         return tmp
