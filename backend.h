@@ -48,7 +48,6 @@ typedef struct OSSDATA {
     int mode_i;
     int minvalue;
     int maxvalue;
-    // zajdel "limes inferior"
     int type;
     int peak;
     vector<string> modes;
@@ -59,12 +58,18 @@ class backend
 {
 public:
     backend();
-    void get_local_dev_info(map<string, map<string, map<string, ossdata> > >& results);
+    //readers
     vector<int> get_control_values(string dev, int i);
     int get_mute_value(string dev, int i);
     vector<string> get_mode_values(string dev, int i);
     int get_current_mode(string dev, int i);
     vector<int> get_peak_values(string dev, int i);
+    //writers
+    void set_mute_value(string dev, int i, int value);
+    void set_mode_value(string dev, int i, string value);
+    void set_control_values(string dev, int i, vector<int> values);
+    //others
+    void get_local_dev_info(map<string, map<string, map<string, ossdata> > >& results);
     string get_error();
 
 private:
