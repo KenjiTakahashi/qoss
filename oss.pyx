@@ -53,6 +53,13 @@ cdef class OSS:
                 raise OSSError()
             tmp.append(self.__convertExtinfo(ei))
         return tmp
+    cpdef dict sextinfo(self, int i, int fd, int ctrl):
+        cdef coss.oss_mixext ei
+        ei.dev = i
+        ei.ctrl = ctrl
+        if coss.ioctl(fd, coss.SNDCTL_MIX_EXTINFO, &ei) == -1:
+            raise OSSError()
+        return self.__convertExtinfo(ei)
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
