@@ -56,3 +56,10 @@ cdef extern from "/usr/lib/oss/include/sys/soundcard.h":
         int update_counter
         int rgbcolor
         int filler[6]
+    ctypedef struct oss_mixer_value:
+        int dev
+        int ctrl
+        int value
+        int flags
+        int timestamp
+        int filler[8]

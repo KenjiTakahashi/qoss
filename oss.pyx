@@ -2,7 +2,8 @@
 cimport coss
 from posix cimport fcntl
 from posix cimport unistd
-from os import getenv
+from libc.errno cimport errno
+from os import getenv, strerror
 
 class OSSError(Exception):
     def __init__(self, msg = ''):
@@ -17,20 +18,20 @@ cdef class OSS:
         cdef bytes devmixer = getenv('OSS_MIXERDEV') or '/dev/mixer'
         cdef int gfd = fcntl.open(devmixer, fcntl.O_RDWR, 0)
         if gfd == -1:
-            raise OSSError()
+            raise OSSError(strerror(errno))
         if coss.ioctl(gfd, coss.SNDCTL_MIX_NRMIX,
                 &self.__numberOfDevices) == -1:
-            raise OSSError()
+            raise OSSError(strerror(errno))
         self.__mixerinfo = list()
         cdef coss.oss_mixerinfo mi
         for i in range(self.__numberOfDevices):
             mi.dev = i
             if coss.ioctl(gfd, coss.SNDCTL_MIXERINFO, &mi) == -1:
-                raise OSSError()
+                raise OSSError(strerror(errno))
             self.__mixerinfo.append(self.__convertMixerinfo(mi))
         cdef int err = unistd.close(gfd)
         if err == -1:
-            raise OSSError()
+            raise OSSError(strerror(errno))
     cpdef int numberOfDevices(self):
         return self.__numberOfDevices
     cpdef dict mixerinfo(self, int i):
@@ -40,9 +41,9 @@ cdef class OSS:
     cpdef int openDevice(self, bytes device):
         cdef int fd = fcntl.open(device, fcntl.O_RDWR, 0)
         if fd == -1:
-            raise OSSError()
+            raise OSSError(strerror(errno))
         return fd
-    cpdef list extinfo(self, int i, int fd):
+    cpdef list extinfo(self, int fd, int i):
         cdef list tmp = list()
         cdef coss.oss_mixext ei
         cdef dict mi = self.__mixerinfo[i]
@@ -50,7 +51,7 @@ cdef class OSS:
             ei.dev = i
             ei.ctrl = k
             if coss.ioctl(fd, coss.SNDCTL_MIX_EXTINFO, &ei) == -1:
-                raise OSSError()
+                raise OSSError(strerror(errno))
             tmp.append(self.__convertExtinfo(ei))
         return tmp
     cpdef dict sextinfo(self, int i, int fd, int ctrl):
@@ -58,12 +59,34 @@ cdef class OSS:
         ei.dev = i
         ei.ctrl = ctrl
         if coss.ioctl(fd, coss.SNDCTL_MIX_EXTINFO, &ei) == -1:
-            raise OSSError()
+            raise OSSError(strerror(errno))
         return self.__convertExtinfo(ei)
+    cpdef tuple peakValues(self, int fd, dict ei):
+        cdef coss.oss_mixer_value v
+        v.dev = ei['dev']
+        v.ctrl = ei['ctrl']
+        v.timestamp = ei['timestamp']
+        if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
+            raise OSSError(strerror(errno))
+        if ei['type'] == coss.MIXT_MONOPEAK:
+            return (v.value & 0xff)
+        elif ei['type'] == coss.MIXT_STEREOPEAK:
+            return (ei.maxvalue - (v.value & 0xff),
+                    ei.maxvalue - ((v.value >> 8) & 0xff))
+    cpdef bint getMuteValue(self, int fd, dict ei):
+        cdef coss.oss_mixer_value v
+        v.dev = ei['dev']
+        v.ctrl = ei['ctrl']
+        v.timestamp = ei['timestamp']
+        if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
+            print strerror(errno)
+            raise OSSError(strerror(errno))
+        return v.value
+        #return v.value and True or False
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
-            raise OSSError()
+            raise OSSError(strerror(errno))
     cdef dict __convertMixerinfo(self, coss.oss_mixerinfo mi):
         cdef dict tmp = dict()
         tmp['name'] = mi.name
