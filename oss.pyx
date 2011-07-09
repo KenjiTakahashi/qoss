@@ -80,8 +80,8 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        #check if it's mute actually!
-        return v.value
+        if ei['type'] & coss.MIXT_MUTE:
+            return v.value
     cpdef list modeValues(self, int fd, dict ei):
         cdef coss.oss_mixer_enuminfo mei
         mei.dev = ei['dev']
@@ -105,8 +105,8 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        #check if it's mode actually!
-        return v.value
+        if ei['type'] & coss.MIXT_VALUE:
+            return v.value
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
