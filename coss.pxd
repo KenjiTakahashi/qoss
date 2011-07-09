@@ -17,6 +17,8 @@ cdef extern from "/usr/lib/oss/include/sys/soundcard.h":
     enum: OSS_HANDLE_SIZE
     enum: OSS_DEVNODE_SIZE
     enum: OSS_ID_SIZE
+    enum: OSS_ENUM_MAXVALUE
+    enum: OSS_ENUM_STRINGSIZE
     ctypedef char oss_handle_t[OSS_HANDLE_SIZE]
     ctypedef char oss_devnode_t[OSS_DEVNODE_SIZE]
     ctypedef char oss_id_t[OSS_ID_SIZE]
@@ -63,3 +65,10 @@ cdef extern from "/usr/lib/oss/include/sys/soundcard.h":
         int flags
         int timestamp
         int filler[8]
+    ctypedef struct oss_mixer_enuminfo:
+        int dev
+        int ctrl
+        int nvalues
+        int version
+        short strindex[OSS_ENUM_MAXVALUE]
+        char strings[OSS_ENUM_STRINGSIZE]

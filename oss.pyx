@@ -68,21 +68,45 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        if ei['type'] == coss.MIXT_MONOPEAK:
-            return (v.value & 0xff)
-        elif ei['type'] == coss.MIXT_STEREOPEAK:
-            return (ei.maxvalue - (v.value & 0xff),
-                    ei.maxvalue - ((v.value >> 8) & 0xff))
+        if ei['type'] & coss.MIXT_MONOPEAK:
+            return (v.value & 0xff,)
+        elif ei['type'] & coss.MIXT_STEREOPEAK:
+            return (ei['maxvalue'] - (v.value & 0xff),
+                    ei['maxvalue'] - ((v.value >> 8) & 0xff))
     cpdef bint getMuteValue(self, int fd, dict ei):
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
         v.ctrl = ei['ctrl']
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
-            print strerror(errno)
             raise OSSError(strerror(errno))
+        #check if it's mute actually!
         return v.value
-        #return v.value and True or False
+    cpdef list modeValues(self, int fd, dict ei):
+        cdef coss.oss_mixer_enuminfo mei
+        mei.dev = ei['dev']
+        mei.ctrl = ei['ctrl']
+        if coss.ioctl(fd, coss.SNDCTL_MIX_ENUMINFO, &mei) == -1:
+            raise OSSError(strerror(errno))
+        cdef list tmp = list()
+        cdef int j
+        cdef int k = 0
+        for i in range(mei.nvalues):
+            j = mei.strindex[i]
+            if j != 0:
+                tmp.append(mei.strings[k:j - 1])
+            k = j
+        tmp.append(mei.strings[k:])
+        return tmp
+    cpdef int getCurrentMode(self, int fd, dict ei):
+        cdef coss.oss_mixer_value v
+        v.dev = ei['dev']
+        v.ctrl = ei['ctrl']
+        v.timestamp = ei['timestamp']
+        if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
+            raise OSSError(strerror(errno))
+        #check if it's mode actually!
+        return v.value
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
