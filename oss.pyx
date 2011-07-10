@@ -107,6 +107,23 @@ cdef class OSS:
             raise OSSError(strerror(errno))
         if ei['type'] & coss.MIXT_VALUE:
             return v.value
+    cpdef tuple getControlValues(self, int fd, dict ei):
+        cdef coss.oss_mixer_value v
+        v.dev = ei['dev']
+        v.ctrl = ei['ctrl']
+        v.timestamp = ei['timestamp']
+        if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
+            raise OSSError(strerror(errno))
+        if ei['type'] & coss.MIXT_STEREOSLIDER16:
+            return (v.value & 0xffff,
+                    (v.value >> 16) & 0xffff)
+        elif ei['type'] & coss.MIXT_STEREOSLIDER:
+            return (v.value & 0xff,
+                    (v.value >> 8) & 0xff)
+        elif ei['type'] & coss.MIXT_MONOSLIDER16:
+            return (v.value & 0xffff,)
+        elif ei['type'] & coss.MIXT_MONOSLIDER:
+            return (v.value & 0xff,)
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
