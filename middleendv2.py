@@ -35,9 +35,9 @@ class QOSSModes(QtGui.QComboBox):
         self.addItems(modes)
         self.setCurrentIndex(current)
 
-class QOSSWidget(QtGui.QWidget):
+class QOSSWidget(QtGui.QGroupBox):
     def __init__(self, fd, values, parent = None):
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QWidget.__init__(self, values['name'], parent)
         self.fd = fd
         layout = QtGui.QGridLayout()
         self.setLayout(layout)
