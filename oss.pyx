@@ -73,7 +73,9 @@ cdef class OSS:
         elif ei['type'] & coss.MIXT_STEREOPEAK:
             return (ei['maxvalue'] - (v.value & 0xff),
                     ei['maxvalue'] - ((v.value >> 8) & 0xff))
-    cpdef bint getMuteValue(self, int fd, dict ei):
+        else:
+            raise OSSError('no such value for this control')
+    cpdef bint getMuteValue(self, int fd, dict ei) except *:
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
         v.ctrl = ei['ctrl']
@@ -82,6 +84,8 @@ cdef class OSS:
             raise OSSError(strerror(errno))
         if ei['type'] & coss.MIXT_MUTE:
             return v.value
+        else:
+            raise OSSError('no such value for this control')
     cpdef list modeValues(self, int fd, dict ei):
         cdef coss.oss_mixer_enuminfo mei
         mei.dev = ei['dev']
@@ -107,6 +111,8 @@ cdef class OSS:
             raise OSSError(strerror(errno))
         if ei['type'] & coss.MIXT_VALUE:
             return v.value
+        else:
+            raise OSSError('no such value for this control')
     cpdef tuple getControlValues(self, int fd, dict ei):
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
@@ -124,6 +130,8 @@ cdef class OSS:
             return (v.value & 0xffff,)
         elif ei['type'] & coss.MIXT_MONOSLIDER:
             return (v.value & 0xff,)
+        else:
+            raise OSSError('no such value for this control')
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
