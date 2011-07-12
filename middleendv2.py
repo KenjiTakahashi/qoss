@@ -63,22 +63,23 @@ class QOSSWidget(QtGui.QGroupBox):
     def createModes(self, values, current):
         self.modes = QOSSModes(values, current)
     def do(self):
-        span = 1
         if self.mute or self.lControl or self.rControl:
             span = 2
+        else:
+            span = 1
         hCount = 0
         if self.lPeak:
             self.layout.addWidget(self.lPeak, 0, 0, span, 1)
             hCount += 1
         if self.mute:
-            self.layout.addWidget(self.mute, hCount, 1)
+            self.layout.addWidget(self.mute, 0, hCount)
         if self.lControl:
-            self.layout.addWidget(self.lControl, hCount, 1)
+            self.layout.addWidget(self.lControl, 1, hCount)
         if self.rControl:
             hCount += 1
-            self.layout.addWidget(self.rControl, hCount, 1)
+            self.layout.addWidget(self.rControl, 1, hCount)
             self.layout.addWidget(QOSSControlButton(), 0, hCount)
         if self.rPeak:
             self.layout.addWidget(self.rPeak, 0, hCount, span, 1)
         if self.modes:
-            self.layout.addWidget(self.modes, span, 0, 1, hCount)
+            self.layout.addWidget(self.modes, span, 0, 1, hCount + 1)
