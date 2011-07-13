@@ -79,7 +79,8 @@ class QOSSWidget(QtGui.QGroupBox):
             hCount += 1
             self.layout.addWidget(self.rControl, 1, hCount)
             self.layout.addWidget(QOSSControlButton(), 0, hCount)
+        hCount += 1
         if self.rPeak:
             self.layout.addWidget(self.rPeak, 0, hCount, span, 1)
         if self.modes:
-            self.layout.addWidget(self.modes, span, 0, 1, hCount + 1)
+            self.layout.addWidget(self.modes, span, 0, 1, hCount)
