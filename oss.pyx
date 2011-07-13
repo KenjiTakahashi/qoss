@@ -102,7 +102,7 @@ cdef class OSS:
             k = j
         tmp.append(mei.strings[k:])
         return tmp
-    cpdef int getCurrentMode(self, int fd, dict ei):
+    cpdef int getCurrentMode(self, int fd, dict ei) except *:
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
         v.ctrl = ei['ctrl']

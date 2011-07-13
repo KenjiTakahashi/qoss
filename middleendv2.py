@@ -35,7 +35,7 @@ class QOSSModes(QtGui.QComboBox):
         self.addItems(modes)
         self.setCurrentIndex(current)
 
-class QOSSWidget(QtGui.QGroupBox):
+class QOSSWidget(QtGui.QGroupBox, object):
     def __init__(self, name, parent = None):
         QtGui.QWidget.__init__(self, name, parent)
         self.layout = QtGui.QGridLayout()
@@ -46,6 +46,18 @@ class QOSSWidget(QtGui.QGroupBox):
         self.lControl = None
         self.rControl = None
         self.modes = None
+    @property
+    def fd(self):
+        return self.__fd
+    @fd.setter
+    def fd(self, fd):
+        self.__fd = fd
+    @property
+    def ei(self):
+        return self.__ei
+    @ei.setter
+    def ei(self, ei):
+        self.__ei = ei
     def createPeaks(self, curr, maxi):
         self.lPeak = QOSSBar(maxi, curr[0])
         try:
