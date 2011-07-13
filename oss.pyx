@@ -68,9 +68,9 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        if ei['type'] & coss.MIXT_MONOPEAK:
+        if ei['type'] == coss.MIXT_MONOPEAK:
             return (v.value & 0xff,)
-        elif ei['type'] & coss.MIXT_STEREOPEAK:
+        elif ei['type'] == coss.MIXT_STEREOPEAK:
             return (ei['maxvalue'] - (v.value & 0xff),
                     ei['maxvalue'] - ((v.value >> 8) & 0xff))
         else:
@@ -82,7 +82,7 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        if ei['type'] & coss.MIXT_MUTE:
+        if ei['type'] == coss.MIXT_MUTE:
             return v.value
         else:
             raise OSSError('no such value for this control')
@@ -109,7 +109,7 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        if ei['type'] & coss.MIXT_VALUE:
+        if ei['type'] == coss.MIXT_VALUE:
             return v.value
         else:
             raise OSSError('no such value for this control')
@@ -120,15 +120,15 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        if ei['type'] & coss.MIXT_STEREOSLIDER16:
+        if ei['type'] == coss.MIXT_STEREOSLIDER16:
             return (v.value & 0xffff,
                     (v.value >> 16) & 0xffff)
-        elif ei['type'] & coss.MIXT_STEREOSLIDER:
+        elif ei['type'] == coss.MIXT_STEREOSLIDER:
             return (v.value & 0xff,
                     (v.value >> 8) & 0xff)
-        elif ei['type'] & coss.MIXT_MONOSLIDER16:
+        elif ei['type'] == coss.MIXT_MONOSLIDER16:
             return (v.value & 0xffff,)
-        elif ei['type'] & coss.MIXT_MONOSLIDER:
+        elif ei['type'] == coss.MIXT_MONOSLIDER:
             return (v.value & 0xff,)
         else:
             raise OSSError('no such value for this control')
