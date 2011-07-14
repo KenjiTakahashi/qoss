@@ -109,10 +109,7 @@ cdef class OSS:
         v.timestamp = ei['timestamp']
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
-        if ei['type'] == coss.MIXT_VALUE:
-            return v.value
-        else:
-            raise OSSError('no such value for this control')
+        return v.value
     cpdef tuple getControlValues(self, int fd, dict ei):
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
