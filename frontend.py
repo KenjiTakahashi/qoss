@@ -58,8 +58,13 @@ class QOSSConfig(QtGui.QWidget):
                     except OSSError:
                         pass
                     try:
-                        qosswidget.createModes(self.oss.modeValues(fd, ei),
-                                self.oss.getCurrentMode(fd, ei))
+                        cur = self.oss.getCurrentMode(fd, ei)
+                    except OSSError:
+                        pass
+                    else:
+                        qosswidget.createModes(self.oss.modeValues(fd, ei), cur)
+                    try:
+                        qosswidget.createOnOff(ei['extname'], self.oss.getOnOff(fd, ei))
                     except OSSError:
                         pass
                     qosswidget.do()

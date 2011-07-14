@@ -46,6 +46,7 @@ class QOSSWidget(QtGui.QGroupBox, object):
         self.lControl = None
         self.rControl = None
         self.modes = None
+        self.onoff = None
     @property
     def fd(self):
         return self.__fd
@@ -74,6 +75,10 @@ class QOSSWidget(QtGui.QGroupBox, object):
             pass
     def createModes(self, values, current):
         self.modes = QOSSModes(values, current)
+    def createOnOff(self, name, value):
+        self.onoff = QtGui.QCheckBox(name)
+        if value:
+            self.onoff.setCheckState(2)
     def do(self):
         if self.mute or self.lControl or self.rControl:
             span = 2
@@ -95,4 +100,7 @@ class QOSSWidget(QtGui.QGroupBox, object):
         if self.rPeak:
             self.layout.addWidget(self.rPeak, 0, hCount, span, 1)
         if self.modes:
+            span += 1
             self.layout.addWidget(self.modes, span, 0, 1, hCount)
+        if self.onoff:
+            self.layout.addWidget(self.onoff, span, 0, 1, hCount)

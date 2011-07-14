@@ -15,6 +15,8 @@ cdef extern from "/usr/lib/oss/include/sys/soundcard.h":
     enum: MIXT_ENUM
     enum: MIXT_MUTE
     enum: MIXT_VALUE
+    enum: MIXT_GROUP
+    enum: MIXT_ONOFF
     enum: SNDCTL_MIX_READ
     enum: SNDCTL_MIX_ENUMINFO
     enum: OSS_HANDLE_SIZE

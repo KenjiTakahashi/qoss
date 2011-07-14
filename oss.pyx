@@ -111,11 +111,16 @@ cdef class OSS:
             return (self.__getValue(fd, ei),)
         else:
             raise OSSError('no such value for this control')
+    cpdef bint getOnOff(self, int fd, dict ei) except *:
+        if ei['type'] == coss.MIXT_ONOFF:
+            return self.__getValue(fd, ei)
+        else:
+            raise OSSError('no such value for this control')
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
             raise OSSError(strerror(errno))
-    cdef int __getValue(self, int fd, dict ei):
+    cdef int __getValue(self, int fd, dict ei) except *:
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
         v.ctrl = ei['ctrl']
