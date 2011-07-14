@@ -55,7 +55,7 @@ class QOSSConfig(QtGui.QWidget):
                         qosswidget.createControls(
                                 self.oss.getControlValues(fd, ei),
                                 ei['maxvalue'])
-                    except OSSError as e:
+                    except OSSError:
                         pass
                     try:
                         qosswidget.createModes(self.oss.modeValues(fd, ei),

@@ -9,6 +9,7 @@ cdef extern from "/usr/lib/oss/include/sys/soundcard.h":
     enum: MIXT_MONOSLIDER16
     enum: MIXT_STEREOSLIDER
     enum: MIXT_MONOSLIDER
+    enum: MIXT_SLIDER
     enum: MIXT_STEREOPEAK
     enum: MIXT_MONOPEAK
     enum: MIXT_ENUM
