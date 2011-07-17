@@ -38,8 +38,13 @@ class QOSSConfig(QtGui.QWidget):
             tree.addTopLevelItem(item)
             widgets = dict()
             for ei in self.oss.extinfo(fd, i):
-                if ei['type'] != 1 and ei['extname'] not in widgets:
-                    qosswidget = QOSSWidget(ei['extname'])
+                if ei['type'] != 1:
+                    partial = ei['extname'][-4:]
+                    if partial == 'mute' or partial == 'mode':
+                        name = ei['extname'][:-5]
+                    else:
+                        name = ei['extname']
+                    qosswidget = widgets.setdefault(name, QOSSWidget(name))
                     qosswidget.fd = fd
                     qosswidget.ei = ei
                     try:
@@ -64,13 +69,12 @@ class QOSSConfig(QtGui.QWidget):
                     else:
                         qosswidget.createModes(self.oss.modeValues(fd, ei), cur)
                     try:
-                        qosswidget.createOnOff(ei['extname'],
-                                self.oss.getOnOff(fd, ei))
+                        qosswidget.createOnOff(name, self.oss.getOnOff(fd, ei))
                     except OSSError:
                         pass
                     qosswidget.do()
-                    widgets[ei['extname']] = qosswidget
-                    item.addChild(QtGui.QTreeWidgetItem([ei['extname']]))
+                    widgets[name] = qosswidget
+                    item.addChild(QtGui.QTreeWidgetItem([name]))
             self.widgets[device['name']] = widgets
             self.oss.closeDevice(fd)
         layout = QtGui.QVBoxLayout()
