@@ -38,7 +38,7 @@ class QOSSConfig(QtGui.QWidget):
             tree.addTopLevelItem(item)
             widgets = dict()
             for ei in self.oss.extinfo(fd, i):
-                if ei['extname'] not in widgets:
+                if ei['type'] != 1 and ei['extname'] not in widgets:
                     qosswidget = QOSSWidget(ei['extname'])
                     qosswidget.fd = fd
                     qosswidget.ei = ei
@@ -64,7 +64,8 @@ class QOSSConfig(QtGui.QWidget):
                     else:
                         qosswidget.createModes(self.oss.modeValues(fd, ei), cur)
                     try:
-                        qosswidget.createOnOff(ei['extname'], self.oss.getOnOff(fd, ei))
+                        qosswidget.createOnOff(ei['extname'],
+                                self.oss.getOnOff(fd, ei))
                     except OSSError:
                         pass
                     qosswidget.do()

@@ -54,7 +54,7 @@ cdef class OSS:
                 raise OSSError(strerror(errno))
             tmp.append(self.__convertExtinfo(ei))
         return tmp
-    cpdef dict sextinfo(self, int i, int fd, int ctrl):
+    cpdef dict sextinfo(self, int fd, int i, int ctrl):
         cdef coss.oss_mixext ei
         ei.dev = i
         ei.ctrl = ctrl
