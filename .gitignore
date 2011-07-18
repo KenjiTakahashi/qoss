@@ -1,3 +1,6 @@
 *~
 *.swp
-*.user
+*.user*
+*.so
+*.html
+*.pyc
