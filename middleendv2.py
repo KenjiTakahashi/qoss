@@ -5,7 +5,7 @@ class QOSSBar(QtGui.QProgressBar):
     def __init__(self, maxi, curr, parent = None):
         QtGui.QProgressBar.__init__(self, parent)
         self.setTextVisible(False)
-        self.setFixedWidth(16)
+        self.setFixedWidth(10)
         self.setOrientation(Qt.Vertical)
         self.setMaximum(maxi)
         self.setValue(curr)
@@ -47,6 +47,7 @@ class QOSSWidget(QtGui.QGroupBox, object):
         self.rControl = None
         self.modes = None
         self.onoff = None
+        self.eis = list()
     @property
     def fd(self):
         return self.__fd
@@ -54,24 +55,38 @@ class QOSSWidget(QtGui.QGroupBox, object):
     def fd(self, fd):
         self.__fd = fd
     @property
-    def ei(self):
-        return self.__ei
-    @ei.setter
-    def ei(self, ei):
-        self.__ei = ei
+    def device(self):
+        return self.__device
+    @device.setter
+    def device(self, device):
+        self.__device = device
     def createPeaks(self, curr, maxi):
-        self.lPeak = QOSSBar(maxi, curr[0])
+        self.lPeak = QOSSBar(maxi, maxi - curr[0])
         try:
-            self.rPeak = QOSSBar(maxi, curr[1])
+            self.rPeak = QOSSBar(maxi, maxi - curr[1])
         except IndexError:
+            pass
+    def updatePeaks(self, values):
+        self.lPeak.setValue(self.lPeak.maximum() - values[0])
+        try:
+            self.rPeak.setValue(self.rPeak.maximum() - values[1])
+        except AttributeError:
             pass
     def createMute(self, value):
         self.mute = QOSSMute(value)
+    def updateMute(self, value):
+        self.mute.setChecked(value)
     def createControls(self, curr, maxi):
         self.lControl = QOSSControl(maxi, curr[0])
         try:
             self.rControl = QOSSControl(maxi, curr[1])
         except IndexError:
+            pass
+    def updateControls(self, values):
+        self.lControl.setValue(values[0])
+        try:
+            self.rControl.setValue(values[1])
+        except AttributeError:
             pass
     def createModes(self, values, current):
         self.modes = QOSSModes(values, current)

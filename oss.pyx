@@ -4,12 +4,17 @@ from posix cimport fcntl
 from posix cimport unistd
 from libc.errno cimport errno
 from os import getenv, strerror
+from cpython cimport bool
 
 class OSSError(Exception):
     def __init__(self, msg = ''):
         self.msg = msg
     def __str__(self):
         return repr(self.msg)
+
+class OSSNoValueError(OSSError):
+    def __init__(self):
+        self.msg = "no such value for this control"
 
 cdef class OSS:
     cdef int __numberOfDevices
@@ -95,7 +100,7 @@ cdef class OSS:
         if ei['type'] == coss.MIXT_ENUM:
             return self.__getValue(fd, ei)
         else:
-            raise OSSError('no such value for this control')
+            raise OSSNoValueError()
     cpdef tuple getControlValues(self, int fd, dict ei):
         if ei['type'] == coss.MIXT_STEREOSLIDER16:
             value = self.__getValue(fd, ei)
@@ -116,6 +121,45 @@ cdef class OSS:
             return self.__getValue(fd, ei)
         else:
             raise OSSError('no such value for this control')
+    cpdef getValues(self, int fd, dict ei):
+        if ei['type'] == coss.MIXT_MONOPEAK:
+            return (self.__getValue(fd, ei) & 0xff,)
+        elif ei['type'] == coss.MIXT_STEREOPEAK:
+            value = self.__getValue(fd, ei)
+            return (ei['maxvalue'] - (value & 0xff),
+                    ei['maxvalue'] - ((value >> 8) & 0xff))
+        elif ei['type'] == coss.MIXT_MUTE:
+            return <bint>self.__getValue(fd, ei)
+        elif ei['type'] == coss.MIXT_STEREOSLIDER16:
+            value = self.__getValue(fd, ei)
+            return (value & 0xffff, (value >> 16) & 0xffff)
+        elif ei['type'] == coss.MIXT_STEREOSLIDER:
+            value = self.__getValue(fd, ei)
+            return (value & 0xff, (value >> 8) & 0xff)
+        elif ei['type'] == coss.MIXT_MONOSLIDER16:
+            return (self.__getValue(fd, ei) & 0xffff,)
+        elif ei['type'] == coss.MIXT_MONOSLIDER:
+            return (self.__getValue(fd, ei) & 0xff,)
+        elif ei['type'] == coss.MIXT_SLIDER:
+            return (self.__getValue(fd, ei),)
+        elif ei['type'] == coss.MIXT_ONOFF:
+            return <bint>self.__getValue(fd, ei)
+        elif ei['type'] == coss.MIXT_ENUM:
+            return self.__getValue(fd, ei)
+        elif ei['type'] == coss.MIXT_VALUE:
+            return self.__getValue(fd, ei)
+        else:
+            raise OSSNoValueError()
+    cpdef bool isSlider(self, int type_):
+        return type_ == coss.MIXT_STEREOSLIDER16 or \
+                type_ == coss.MIXT_STEREOSLIDER or \
+                type_ == coss.MIXT_MONOSLIDER16 or \
+                type_ == coss.MIXT_MONOSLIDER or \
+                type_ == coss.MIXT_SLIDER
+    cpdef bool isPeak(self, int type_):
+        return type_ == coss.MIXT_STEREOPEAK or type_ == coss.MIXT_MONOPEAK
+    cpdef bool isMute(self, int type_):
+        return type_ == coss.MIXT_MUTE
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:
