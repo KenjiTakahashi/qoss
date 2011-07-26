@@ -82,8 +82,10 @@ class QOSSConfig(QtGui.QWidget):
         wlayout.addWidget(tree)
         widget.setLayout(wlayout)
         self.widgets = dict()
+        self.fds = list()
         for i, device in enumerate(self.oss.mixerinfoList()):
             fd = self.oss.openDevice(device['devnode'])
+            self.fds.append(fd)
             item = QtGui.QTreeWidgetItem([device['name']])
             tree.addTopLevelItem(item)
             widgets = dict()
@@ -135,7 +137,6 @@ class QOSSConfig(QtGui.QWidget):
             item.addChildren([QtGui.QTreeWidgetItem([name]) for name in children])
             item.sortChildren(0, Qt.AscendingOrder)
             self.widgets[device['name']] = widgets
-            #self.oss.closeDevice(fd) # add it somewhere
         layout = QtGui.QVBoxLayout()
         layout.addWidget(widget)
         self.setLayout(layout)
@@ -170,6 +171,8 @@ class QOSSConfig(QtGui.QWidget):
         widget.updateOnOff(values)
     def closeEvent(self, event):
         self.watcher.stop()
+        for fd in self.fds:
+            self.oss.closeDevice(fd)
         self.watcher.join()
 
 def run():
