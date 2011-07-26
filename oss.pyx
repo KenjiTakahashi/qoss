@@ -176,6 +176,14 @@ cdef class OSS:
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
         return v.value
+    cdef void __setValue(self, int fd, dict ei, int value) except OSSError:
+        cdef coss.oss_mixer_value v
+        v.dev = ei['dev']
+        v.ctrl = ei['ctrl']
+        v.timestamp = ei['timestamp']
+        v.value = value
+        if cos.ioctl(fd, coss.SNDCTL_MIX_WRITE, &v) == -1:
+            raise OSSError(strerror(errno))
     cdef dict __convertMixerinfo(self, coss.oss_mixerinfo mi):
         cdef dict tmp = dict()
         tmp['name'] = mi.name
