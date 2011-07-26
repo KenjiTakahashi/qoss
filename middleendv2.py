@@ -2,12 +2,13 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
 class QOSSBar(QtGui.QProgressBar):
-    def __init__(self, maxi, curr, parent = None):
+    def __init__(self, mini, maxi, curr, parent = None):
         QtGui.QProgressBar.__init__(self, parent)
         self.setTextVisible(False)
         self.setFixedWidth(10)
         self.setOrientation(Qt.Vertical)
-        self.setMaximum(maxi)
+        self.setMinimum(mini)
+        self.setMaximum(mini + maxi)
         self.setValue(curr)
 
 class QOSSMute(QtGui.QPushButton):
@@ -18,9 +19,10 @@ class QOSSMute(QtGui.QPushButton):
         self.setChecked(value)
 
 class QOSSControl(QtGui.QSlider):
-    def __init__(self, maxi, curr, parent = None):
+    def __init__(self, mini, maxi, curr, parent = None):
         QtGui.QSlider.__init__(self, parent)
-        self.setMaximum(maxi)
+        self.setMinimum(mini)
+        self.setMaximum(mini + maxi)
         self.setValue(curr)
 
 class QOSSControlButton(QtGui.QPushButton):
@@ -64,10 +66,10 @@ class QOSSWidget(QtGui.QGroupBox, object):
     @device.setter
     def device(self, device):
         self.__device = device
-    def createPeaks(self, curr, maxi):
-        self.lPeak = QOSSBar(maxi, maxi - curr[0])
+    def createPeaks(self, curr, mini, maxi):
+        self.lPeak = QOSSBar(mini, maxi, maxi - curr[0])
         try:
-            self.rPeak = QOSSBar(maxi, maxi - curr[1])
+            self.rPeak = QOSSBar(mini, maxi, maxi - curr[1])
         except IndexError:
             pass
     def updatePeaks(self, values):
@@ -80,10 +82,10 @@ class QOSSWidget(QtGui.QGroupBox, object):
         self.mute = QOSSMute(value)
     def updateMute(self, value):
         self.mute.setChecked(value)
-    def createControls(self, curr, maxi):
-        self.lControl = QOSSControl(maxi, curr[0])
+    def createControls(self, curr, mini, maxi):
+        self.lControl = QOSSControl(mini, maxi, curr[0])
         try:
-            self.rControl = QOSSControl(maxi, curr[1])
+            self.rControl = QOSSControl(mini, maxi, curr[1])
         except IndexError:
             pass
     def updateControls(self, values):

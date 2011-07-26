@@ -102,7 +102,8 @@ class QOSSConfig(QtGui.QWidget):
                     qosswidget.device = device['name']
                     try:
                         values = self.oss.peakValues(fd, ei)
-                        qosswidget.createPeaks(values, ei['maxvalue'])
+                        qosswidget.createPeaks(values,
+                                ei['minvalue'], ei['maxvalue'])
                     except oss.OSSError:
                         pass
                     try:
@@ -112,7 +113,8 @@ class QOSSConfig(QtGui.QWidget):
                         pass
                     try:
                         values = self.oss.getControlValues(fd, ei)
-                        qosswidget.createControls(values, ei['maxvalue'])
+                        qosswidget.createControls(values,
+                                ei['minvalue'], ei['maxvalue'])
                     except oss.OSSError:
                         pass
                     try:
