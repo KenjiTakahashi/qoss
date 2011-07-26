@@ -2,17 +2,17 @@
 import sys
 import oss
 from PyQt4 import QtGui
-from PyQt4.QtCore import Qt, QThread, pyqtSignal
+from PyQt4.QtCore import Qt, pyqtSignal
 from middleendv2 import QOSSWidget
-#from signal2 import Signal
-#from threading import Thread
+from signal2 import Signal
+from threading import Thread
 from time import sleep
 
-class QOSSWatcher(QThread):
-    updated = pyqtSignal(str, str, dict, tuple)
+class QOSSWatcher(Thread):
+    #updated = pyqtSignal(str, str, dict, tuple)
     def __init__(self, oss_):
-        QThread.__init__(self)
-        #self.updated = Signal()
+        Thread.__init__(self)
+        self.updated = Signal()
         self.running = True
         self.items = list()
         self.oss = oss_
@@ -25,11 +25,11 @@ class QOSSWatcher(QThread):
                     except oss.OSSNoValueError:
                         new_values = self.oss.getValues(fd, ei)
                         if new_values != values:
-                            self.updated.emit(device, name, ei, new_values)
+                            self.updated(device, name, ei, new_values)
                     else:
                         new_values = self.oss.modeValues(fd, ei)
                         if cur != values[1] or new_values != values[0]:
-                            self.updated.emit(device, name, ei, (new_values, cur))
+                            self.updated(device, name, ei, (new_values, cur))
                     sleep(.01)
     def register(self, device, name, fd, ei):
         self.items.append((device, name, fd, ei))
@@ -42,11 +42,15 @@ class QOSSWatcher(QThread):
         self.running = False
 
 class QOSSConfig(QtGui.QWidget):
+    updatedSlider = pyqtSignal(QOSSWidget, tuple)
+    updatedPeak = pyqtSignal(QOSSWidget, tuple)
     def __init__(self, oss_, parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.oss = oss_
         self.watcher = QOSSWatcher(self.oss)
-        self.watcher.updated.connect(self.update)
+        self.watcher.updated.connect(self.chainer)
+        self.updatedSlider.connect(self.updateSlider)
+        self.updatedPeak.connect(self.updatePeak)
         widget = QtGui.QWidget()
         wlayout = QtGui.QHBoxLayout()
         tree = QtGui.QTreeWidget()
@@ -131,21 +135,25 @@ class QOSSConfig(QtGui.QWidget):
         layout.addWidget(widget)
         self.setLayout(layout)
         self.watcher.start()
-    def update(self, device, name, ei, values):
+    def chainer(self, device, name, ei, values):
         widget = self.widgets[str(device)][str(name)]
         for i, (ei_, values_) in enumerate(widget.eis):
             if ei_ == ei:
                 del widget.eis[i]
                 widget.eis.append((ei, values))
         if self.oss.isSlider(ei['type']):
-            widget.updateControls(values)
+            self.updatedSlider.emit(widget, values)
         elif self.oss.isPeak(ei['type']):
-            widget.updatePeaks(values)
+            self.updatedPeak.emit(widget, values)
         else:
             print name
+    def updateSlider(self, widget, values):
+        widget.updateControls(values)
+    def updatePeak(self, widget, values):
+        widget.updatePeaks(values)
     def closeEvent(self, event):
         self.watcher.stop()
-        self.watcher.wait()
+        self.watcher.join()
 
 def run():
     app = QtGui.QApplication(sys.argv)
