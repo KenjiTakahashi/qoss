@@ -150,16 +150,20 @@ cdef class OSS:
             return self.__getValue(fd, ei)
         else:
             raise OSSNoValueError()
-    cpdef bool isSlider(self, int type_):
-        return type_ == coss.MIXT_STEREOSLIDER16 or \
-                type_ == coss.MIXT_STEREOSLIDER or \
-                type_ == coss.MIXT_MONOSLIDER16 or \
-                type_ == coss.MIXT_MONOSLIDER or \
-                type_ == coss.MIXT_SLIDER
-    cpdef bool isPeak(self, int type_):
-        return type_ == coss.MIXT_STEREOPEAK or type_ == coss.MIXT_MONOPEAK
-    cpdef bool isMute(self, int type_):
-        return type_ == coss.MIXT_MUTE
+    cpdef bool isSlider(self, dict ei):
+        return ei['type'] == coss.MIXT_STEREOSLIDER16 or \
+                ei['type'] == coss.MIXT_STEREOSLIDER or \
+                ei['type'] == coss.MIXT_MONOSLIDER16 or \
+                ei['type'] == coss.MIXT_MONOSLIDER or \
+                ei['type'] == coss.MIXT_SLIDER
+    cpdef bool isPeak(self, dict ei):
+        return ei['type'] == coss.MIXT_STEREOPEAK or ei['type'] == coss.MIXT_MONOPEAK
+    cpdef bool isMute(self, dict ei):
+        return ei['type'] == coss.MIXT_MUTE
+    cpdef bool isOnOff(self, dict ei):
+        return ei['type'] == coss.MIXT_ONOFF
+    cpdef bool isEnum(self, dict ei):
+        return ei['type'] == coss.MIXT_ENUM
     cpdef closeDevice(self, int fd):
         cdef int err = unistd.close(fd)
         if err == -1:

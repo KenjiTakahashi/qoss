@@ -9,7 +9,6 @@ from threading import Thread
 from time import sleep
 
 class QOSSWatcher(Thread):
-    #updated = pyqtSignal(str, str, dict, tuple)
     def __init__(self, oss_):
         Thread.__init__(self)
         self.updated = Signal()
@@ -44,6 +43,9 @@ class QOSSWatcher(Thread):
 class QOSSConfig(QtGui.QWidget):
     updatedSlider = pyqtSignal(QOSSWidget, tuple)
     updatedPeak = pyqtSignal(QOSSWidget, tuple)
+    updatedMute = pyqtSignal(QOSSWidget, bool)
+    updatedModes = pyqtSignal(QOSSWidget, list, int)
+    updatedOnOff = pyqtSignal(QOSSWidget, bool)
     def __init__(self, oss_, parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.oss = oss_
@@ -51,6 +53,9 @@ class QOSSConfig(QtGui.QWidget):
         self.watcher.updated.connect(self.chainer)
         self.updatedSlider.connect(self.updateSlider)
         self.updatedPeak.connect(self.updatePeak)
+        self.updatedMute.connect(self.updateMute)
+        self.updatedModes.connect(self.updateModes)
+        self.updatedOnOff.connect(self.updateOnOff)
         widget = QtGui.QWidget()
         wlayout = QtGui.QHBoxLayout()
         tree = QtGui.QTreeWidget()
@@ -136,28 +141,40 @@ class QOSSConfig(QtGui.QWidget):
         self.setLayout(layout)
         self.watcher.start()
     def chainer(self, device, name, ei, values):
-        widget = self.widgets[str(device)][str(name)]
+        widget = self.widgets[device][name]
         for i, (ei_, values_) in enumerate(widget.eis):
             if ei_ == ei:
                 del widget.eis[i]
                 widget.eis.append((ei, values))
-        if self.oss.isSlider(ei['type']):
+        if self.oss.isSlider(ei):
             self.updatedSlider.emit(widget, values)
-        elif self.oss.isPeak(ei['type']):
+        elif self.oss.isPeak(ei):
             self.updatedPeak.emit(widget, values)
+        elif self.oss.isMute(ei):
+            self.updatedMute.emit(widget, values)
+        elif self.oss.isEnum(ei):
+            self.updatedModes.emit(widget, values[0], values[1])
+        elif self.oss.isOnOff(ei):
+            self.updatedOnOff.emit(widget, values)
         else:
-            print name
+            print(name)
     def updateSlider(self, widget, values):
         widget.updateControls(values)
     def updatePeak(self, widget, values):
         widget.updatePeaks(values)
+    def updateMute(self, widget, values):
+        widget.updateMute(values)
+    def updateModes(self, widget, values, current):
+        widget.updateModes(values, current)
+    def updateOnOff(self, widget, values):
+        widget.updateOnOff(values)
     def closeEvent(self, event):
         self.watcher.stop()
         self.watcher.join()
 
 def run():
     app = QtGui.QApplication(sys.argv)
-    app.setApplicationName(u'qoss')
+    app.setApplicationName('qoss')
     main = QOSSConfig(oss.OSS())
     main.show()
     sys.exit(app.exec_())

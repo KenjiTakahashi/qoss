@@ -34,6 +34,10 @@ class QOSSModes(QtGui.QComboBox):
         QtGui.QComboBox.__init__(self, parent)
         self.addItems(modes)
         self.setCurrentIndex(current)
+    def update(self, modes, current):
+        self.clear()
+        self.addItems(modes)
+        self.setCurrentIndex(current)
 
 class QOSSWidget(QtGui.QGroupBox, object):
     def __init__(self, name, parent = None):
@@ -90,10 +94,17 @@ class QOSSWidget(QtGui.QGroupBox, object):
             pass
     def createModes(self, values, current):
         self.modes = QOSSModes(values, current)
+    def updateModes(self, values, current):
+        self.modes.update(values, current)
     def createOnOff(self, name, value):
         self.onoff = QtGui.QCheckBox(name)
         if value:
             self.onoff.setCheckState(2)
+    def updateOnOff(self, value):
+        if value:
+            self.onoff.setCheckState(2)
+        else:
+            self.onoff.setCheckState(0)
     def do(self):
         if self.mute or self.lControl or self.rControl:
             span = 2
