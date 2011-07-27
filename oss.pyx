@@ -74,12 +74,17 @@ cdef class OSS:
             return (ei['maxvalue'] - (value & 0xff),
                     ei['maxvalue'] - ((value >> 8) & 0xff))
         else:
-            raise OSSError('no such value for this control')
-    cpdef bint getMuteValue(self, int fd, dict ei) except *:
+            raise OSSNoValueError()
+    cpdef bint getMute(self, int fd, dict ei) except -1:
         if ei['type'] == coss.MIXT_MUTE:
             return self.__getValue(fd, ei)
         else:
-            raise OSSError('no such value for this control')
+            raise OSSNoValueError()
+    cpdef setMute(self, int fd, dict ei, bint value):
+        if ei['type'] == coss.MIXT_MUTE:
+            self.__setValue(fd, ei, value)
+        else:
+            raise OSSNoValueError()
     cpdef list modeValues(self, int fd, dict ei):
         cdef coss.oss_mixer_enuminfo mei
         mei.dev = ei['dev']
@@ -96,12 +101,17 @@ cdef class OSS:
             k = j
         tmp.append(mei.strings[k:])
         return tmp
-    cpdef int getCurrentMode(self, int fd, dict ei) except *:
+    cpdef int getCurrentMode(self, int fd, dict ei) except -1:
         if ei['type'] == coss.MIXT_ENUM:
             return self.__getValue(fd, ei)
         else:
             raise OSSNoValueError()
-    cpdef tuple getControlValues(self, int fd, dict ei):
+    cpdef setCurrentMode(self, int fd, dict ei, int value):
+        if ei['type'] == coss.MIXT_ENUM:
+            self.__setValue(fd, ei, value)
+        else:
+            raise OSSNoValueError()
+    cpdef tuple getSliders(self, int fd, dict ei):
         if ei['type'] == coss.MIXT_STEREOSLIDER16:
             value = self.__getValue(fd, ei)
             return (value & 0xffff, (value >> 16) & 0xffff)
@@ -115,12 +125,30 @@ cdef class OSS:
         elif ei['type'] == coss.MIXT_SLIDER:
             return (self.__getValue(fd, ei),)
         else:
-            raise OSSError('no such value for this control')
-    cpdef bint getOnOff(self, int fd, dict ei) except *:
+            raise OSSNoValueError()
+    cpdef setSliders(self, int fd, dict ei, tuple values):
+        if ei['type'] == coss.MIXT_STEREOSLIDER16:
+            self.__setValue(fd, ei,
+                    (values[0] | 0x0000) + ((values[1] << 16) | 0x0000))
+        elif ei['type'] == coss.MIXT_STEREOSLIDER:
+            self.__setValue(fd, ei,
+                    (values[0] | 0x00) + ((values[1] << 8) | 0x00))
+        elif ei['type'] == coss.MIXT_MONOSLIDER16:
+            self.__setValue(fd, ei, values[0] | 0x0000)
+        elif ei['type'] == coss.MIXT_MONOSLIDER:
+            self.__setValue(fd, ei, values[0] | 0x00)
+        else:
+            raise OSSNoValueError()
+    cpdef bint getOnOff(self, int fd, dict ei) except -1:
         if ei['type'] == coss.MIXT_ONOFF:
             return self.__getValue(fd, ei)
         else:
-            raise OSSError('no such value for this control')
+            raise OSSNoValueError()
+    cpdef setOnOff(self, int fd, dict ei, bint value):
+        if ei['type'] == coss.MIXT_ONOFF:
+            self.__setValue(fd, ei, value)
+        else:
+            raise OSSNoValueError()
     cpdef getValues(self, int fd, dict ei):
         if ei['type'] == coss.MIXT_MONOPEAK:
             return (self.__getValue(fd, ei) & 0xff,)
@@ -168,7 +196,7 @@ cdef class OSS:
         cdef int err = unistd.close(fd)
         if err == -1:
             raise OSSError(strerror(errno))
-    cdef int __getValue(self, int fd, dict ei) except *:
+    cdef int __getValue(self, int fd, dict ei) except? -1:
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
         v.ctrl = ei['ctrl']
@@ -176,13 +204,13 @@ cdef class OSS:
         if coss.ioctl(fd, coss.SNDCTL_MIX_READ, &v) == -1:
             raise OSSError(strerror(errno))
         return v.value
-    cdef void __setValue(self, int fd, dict ei, int value) except OSSError:
+    cdef void __setValue(self, int fd, dict ei, int value) except *:
         cdef coss.oss_mixer_value v
         v.dev = ei['dev']
         v.ctrl = ei['ctrl']
         v.timestamp = ei['timestamp']
         v.value = value
-        if cos.ioctl(fd, coss.SNDCTL_MIX_WRITE, &v) == -1:
+        if coss.ioctl(fd, coss.SNDCTL_MIX_WRITE, &v) == -1:
             raise OSSError(strerror(errno))
     cdef dict __convertMixerinfo(self, coss.oss_mixerinfo mi):
         cdef dict tmp = dict()

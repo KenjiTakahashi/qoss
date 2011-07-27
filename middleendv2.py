@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 from PyQt4 import QtGui
-from PyQt4.QtCore import Qt
+from PyQt4.QtCore import Qt, pyqtSignal
 
 class QOSSBar(QtGui.QProgressBar):
     def __init__(self, mini, maxi, curr, parent = None):
@@ -18,14 +19,14 @@ class QOSSMute(QtGui.QPushButton):
         self.setCheckable(True)
         self.setChecked(value)
 
-class QOSSControl(QtGui.QSlider):
+class QOSSSlider(QtGui.QSlider):
     def __init__(self, mini, maxi, curr, parent = None):
         QtGui.QSlider.__init__(self, parent)
         self.setMinimum(mini)
         self.setMaximum(mini + maxi)
         self.setValue(curr)
 
-class QOSSControlButton(QtGui.QPushButton):
+class QOSSSliderButton(QtGui.QPushButton):
     def __init__(self, parent = None):
         QtGui.QPushButton.__init__(self, parent)
         self.setFixedSize(21, 21)
@@ -42,6 +43,10 @@ class QOSSModes(QtGui.QComboBox):
         self.setCurrentIndex(current)
 
 class QOSSWidget(QtGui.QGroupBox, object):
+    sliderChanged = pyqtSignal(int, dict, tuple)
+    modesChanged = pyqtSignal(int, dict, int)
+    muteChanged = pyqtSignal(int, dict, bool)
+    onOffChanged = pyqtSignal(int, dict, bool)
     def __init__(self, name, parent = None):
         QtGui.QWidget.__init__(self, name, parent)
         self.layout = QtGui.QGridLayout()
@@ -49,11 +54,12 @@ class QOSSWidget(QtGui.QGroupBox, object):
         self.mute = None
         self.lPeak = None
         self.rPeak = None
-        self.lControl = None
-        self.rControl = None
+        self.lSlider = None
+        self.rSlider = None
         self.modes = None
         self.onoff = None
         self.eis = list()
+        self.inteis = dict()
     @property
     def fd(self):
         return self.__fd
@@ -80,35 +86,58 @@ class QOSSWidget(QtGui.QGroupBox, object):
             pass
     def createMute(self, value):
         self.mute = QOSSMute(value)
+        self.mute.toggled.connect(self.changeMute)
     def updateMute(self, value):
         self.mute.setChecked(value)
-    def createControls(self, curr, mini, maxi):
-        self.lControl = QOSSControl(mini, maxi, curr[0])
+    def changeMute(self, value):
+        self.muteChanged.emit(self.fd, self.inteis['mute'], value)
+    def createSlider(self, curr, mini, maxi):
+        self.lSlider = QOSSSlider(mini, maxi, curr[0])
+        self.lSlider.valueChanged.connect(self.changelSlider)
         try:
-            self.rControl = QOSSControl(mini, maxi, curr[1])
+            self.rSlider = QOSSSlider(mini, maxi, curr[1])
+            self.rSlider.valueChanged.connect(self.changerSlider)
         except IndexError:
             pass
-    def updateControls(self, values):
-        self.lControl.setValue(values[0])
+    def updateSlider(self, values):
+        self.lSlider.setValue(values[0])
         try:
-            self.rControl.setValue(values[1])
+            self.rSlider.setValue(values[1])
         except AttributeError:
             pass
+    def changelSlider(self, value):
+        try:
+            self.sliderChanged.emit((value, self.rSlider.value()),
+                    self.inteis['slider'])
+        except AttributeError:
+            self.sliderChanged.emit((value,), self.inteis['slider'])
+    def changerSlider(self, value):
+        try:
+            self.sliderChanged.emit((self.lSlider.value(), value),
+                    self.inteis['slider'])
+        except AttributeError:
+            self.sliderChanged.emit((value,), self.inteis['slider'])
     def createModes(self, values, current):
         self.modes = QOSSModes(values, current)
+        self.modes.currentIndexChanged[int].connect(self.changeModes)
     def updateModes(self, values, current):
         self.modes.update(values, current)
+    def changeModes(self, current):
+        self.modesChanged.emit(current, self.inteis['modes'])
     def createOnOff(self, name, value):
         self.onoff = QtGui.QCheckBox(name)
         if value:
             self.onoff.setCheckState(2)
+        self.onoff.stateChanged.connect(self.changeOnOff)
     def updateOnOff(self, value):
         if value:
             self.onoff.setCheckState(2)
         else:
             self.onoff.setCheckState(0)
+    def changeOnOff(self, value):
+        self.onOffChanged.emit(self.fd, self.inteis['onoff'], value)
     def do(self):
-        if self.mute or self.lControl or self.rControl:
+        if self.mute or self.lSlider or self.rSlider:
             span = 2
         else:
             span = 1
@@ -118,12 +147,12 @@ class QOSSWidget(QtGui.QGroupBox, object):
             hCount += 1
         if self.mute:
             self.layout.addWidget(self.mute, 0, hCount)
-        if self.lControl:
-            self.layout.addWidget(self.lControl, 1, hCount)
-        if self.rControl:
+        if self.lSlider:
+            self.layout.addWidget(self.lSlider, 1, hCount)
+        if self.rSlider:
             hCount += 1
-            self.layout.addWidget(self.rControl, 1, hCount)
-            self.layout.addWidget(QOSSControlButton(), 0, hCount)
+            self.layout.addWidget(self.rSlider, 1, hCount)
+            self.layout.addWidget(QOSSSliderButton(), 0, hCount)
         hCount += 1
         if self.rPeak:
             self.layout.addWidget(self.rPeak, 0, hCount, span, 1)

@@ -41,21 +41,21 @@ class QOSSWatcher(Thread):
         self.running = False
 
 class QOSSConfig(QtGui.QWidget):
-    updatedSlider = pyqtSignal(QOSSWidget, tuple)
-    updatedPeak = pyqtSignal(QOSSWidget, tuple)
-    updatedMute = pyqtSignal(QOSSWidget, bool)
-    updatedModes = pyqtSignal(QOSSWidget, list, int)
-    updatedOnOff = pyqtSignal(QOSSWidget, bool)
+    sliderUpdated = pyqtSignal(QOSSWidget, tuple)
+    peaksUpdated = pyqtSignal(QOSSWidget, tuple)
+    muteUpdated = pyqtSignal(QOSSWidget, bool)
+    modesUpdated = pyqtSignal(QOSSWidget, list, int)
+    onOffUpdated = pyqtSignal(QOSSWidget, bool)
     def __init__(self, oss_, parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.oss = oss_
         self.watcher = QOSSWatcher(self.oss)
         self.watcher.updated.connect(self.chainer)
-        self.updatedSlider.connect(self.updateSlider)
-        self.updatedPeak.connect(self.updatePeak)
-        self.updatedMute.connect(self.updateMute)
-        self.updatedModes.connect(self.updateModes)
-        self.updatedOnOff.connect(self.updateOnOff)
+        self.sliderUpdated.connect(self.updateSlider)
+        self.peaksUpdated.connect(self.updatePeak)
+        self.muteUpdated.connect(self.updateMute)
+        self.modesUpdated.connect(self.updateModes)
+        self.onOffUpdated.connect(self.updateOnOff)
         widget = QtGui.QWidget()
         wlayout = QtGui.QHBoxLayout()
         tree = QtGui.QTreeWidget()
@@ -107,21 +107,30 @@ class QOSSConfig(QtGui.QWidget):
                     except oss.OSSError:
                         pass
                     try:
-                        values = self.oss.getMuteValue(fd, ei)
+                        values = self.oss.getMute(fd, ei)
+                    except oss.OSSError:
+                        pass
+                    else:
                         qosswidget.createMute(values)
-                    except oss.OSSError:
-                        pass
+                        qosswidget.inteis['mute'] = ei
+                        qosswidget.muteChanged.connect(self.oss.setMute)
                     try:
-                        values = self.oss.getControlValues(fd, ei)
-                        qosswidget.createControls(values,
-                                ei['minvalue'], ei['maxvalue'])
+                        values = self.oss.getSliders(fd, ei)
                     except oss.OSSError:
                         pass
+                    else:
+                        qosswidget.createSlider(values,
+                                ei['minvalue'], ei['maxvalue'])
+                        qosswidget.inteis['slider'] = ei
+                        qosswidget.sliderChanged.connect(self.oss.setSliders)
                     try:
                         values = self.oss.getOnOff(fd, ei)
-                        qosswidget.createOnOff(name, values)
                     except oss.OSSError:
                         pass
+                    else:
+                        qosswidget.createOnOff(name, values)
+                        qosswidget.inteis['onoff'] = ei
+                        qosswidget.onOffChanged.connect(self.oss.setOnOff)
                     try:
                         cur = self.oss.getCurrentMode(fd, ei)
                     except oss.OSSError:
@@ -129,6 +138,8 @@ class QOSSConfig(QtGui.QWidget):
                     else:
                         values = (self.oss.modeValues(fd, ei), cur)
                         qosswidget.createModes(values[0], cur)
+                        qosswidget.inteis['modes'] = ei
+                        qosswidget.modesChanged.connect(self.oss.setCurrentMode)
                     try:
                         qosswidget.eis.append((ei, values))
                     except UnboundLocalError:
@@ -150,19 +161,19 @@ class QOSSConfig(QtGui.QWidget):
                 del widget.eis[i]
                 widget.eis.append((ei, values))
         if self.oss.isSlider(ei):
-            self.updatedSlider.emit(widget, values)
+            self.sliderUpdated.emit(widget, values)
         elif self.oss.isPeak(ei):
-            self.updatedPeak.emit(widget, values)
+            self.peaksUpdated.emit(widget, values)
         elif self.oss.isMute(ei):
-            self.updatedMute.emit(widget, values)
+            self.muteUpdated.emit(widget, values)
         elif self.oss.isEnum(ei):
-            self.updatedModes.emit(widget, values[0], values[1])
+            self.modesUpdated.emit(widget, values[0], values[1])
         elif self.oss.isOnOff(ei):
-            self.updatedOnOff.emit(widget, values)
+            self.onOffUpdated.emit(widget, values)
         else:
             print(name)
     def updateSlider(self, widget, values):
-        widget.updateControls(values)
+        widget.updateSlider(values)
     def updatePeak(self, widget, values):
         widget.updatePeaks(values)
     def updateMute(self, widget, values):
@@ -173,9 +184,9 @@ class QOSSConfig(QtGui.QWidget):
         widget.updateOnOff(values)
     def closeEvent(self, event):
         self.watcher.stop()
+        self.watcher.join()
         for fd in self.fds:
             self.oss.closeDevice(fd)
-        self.watcher.join()
 
 def run():
     app = QtGui.QApplication(sys.argv)
