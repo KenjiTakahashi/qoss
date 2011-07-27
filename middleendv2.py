@@ -107,23 +107,36 @@ class QOSSWidget(QtGui.QGroupBox, object):
             pass
     def changelSlider(self, value):
         try:
-            self.sliderChanged.emit((value, self.rSlider.value()),
-                    self.inteis['slider'])
+            self.sliderChanged.emit(self.fd, self.inteis['slider'],
+                    (value, self.rSlider.value()))
         except AttributeError:
-            self.sliderChanged.emit((value,), self.inteis['slider'])
+            self.sliderChanged.emit(self.fd, self.inteis['slider'], (value,))
     def changerSlider(self, value):
         try:
-            self.sliderChanged.emit((self.lSlider.value(), value),
-                    self.inteis['slider'])
+            self.sliderChanged.emit(self.fd, self.inteis['slider'],
+                    (self.lSlider.value(), value))
         except AttributeError:
-            self.sliderChanged.emit((value,), self.inteis['slider'])
+            self.sliderChanged.emit(self.fd, self.inteis['slider'], (value,))
+    def slidersLockage(self, value):
+        if value:
+            lValue = self.lSlider.value()
+            rValue = self.rSlider.value()
+            if lValue < rValue:
+                self.lSlider.setValue(rValue)
+            elif lValue > rValue:
+                self.rSlider.setValue(lValue)
+            self.lSlider.valueChanged.connect(self.rSlider.setValue)
+            self.rSlider.valueChanged.connect(self.lSlider.setValue)
+        else:
+            self.lSlider.valueChanged.disconnect(self.rSlider.setValue)
+            self.rSlider.valueChanged.disconnect(self.lSlider.setValue)
     def createModes(self, values, current):
         self.modes = QOSSModes(values, current)
         self.modes.currentIndexChanged[int].connect(self.changeModes)
     def updateModes(self, values, current):
         self.modes.update(values, current)
     def changeModes(self, current):
-        self.modesChanged.emit(current, self.inteis['modes'])
+        self.modesChanged.emit(self.fd, self.inteis['modes'], current)
     def createOnOff(self, name, value):
         self.onoff = QtGui.QCheckBox(name)
         if value:
@@ -152,7 +165,9 @@ class QOSSWidget(QtGui.QGroupBox, object):
         if self.rSlider:
             hCount += 1
             self.layout.addWidget(self.rSlider, 1, hCount)
-            self.layout.addWidget(QOSSSliderButton(), 0, hCount)
+            sliderButton = QOSSSliderButton()
+            sliderButton.toggled.connect(self.slidersLockage)
+            self.layout.addWidget(sliderButton, 0, hCount)
         hCount += 1
         if self.rPeak:
             self.layout.addWidget(self.rPeak, 0, hCount, span, 1)
