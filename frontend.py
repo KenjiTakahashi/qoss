@@ -40,7 +40,7 @@ class QOSSWatcher(Thread):
     def stop(self):
         self.running = False
 
-class QOSSConfig(QtGui.QWidget):
+class QOSSConfig(QtGui.QDialog):
     sliderUpdated = pyqtSignal(QOSSWidget, tuple)
     peaksUpdated = pyqtSignal(QOSSWidget, tuple)
     muteUpdated = pyqtSignal(QOSSWidget, bool)
@@ -155,13 +155,13 @@ class QOSSConfig(QtGui.QWidget):
         dropper = QtGui.QGroupBox(u'Drop into me!')
         dropper.setMinimumHeight(160)
         layout.addWidget(dropper)
-        buttons = QtGui.QHBoxLayout()
-        save = QtGui.QPushButton(u'Save')
-        cancel = QtGui.QPushButton(u'Cancel')
-        buttons.addWidget(save)
-        buttons.addStretch()
-        buttons.addWidget(cancel)
-        layout.addLayout(buttons)
+        buttons = QtGui.QDialogButtonBox()
+        save = QtGui.QPushButton(self.trUtf8('&Save'))
+        cancel = QtGui.QPushButton(self.trUtf8('&Cancel'))
+        cancel.clicked.connect(self.close)
+        buttons.addButton(save, QtGui.QDialogButtonBox.AcceptRole)
+        buttons.addButton(cancel, QtGui.QDialogButtonBox.RejectRole)
+        layout.addWidget(buttons)
         self.setLayout(layout)
         self.watcher.start()
     def chainer(self, device, name, ei, values):
