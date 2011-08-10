@@ -152,6 +152,16 @@ class QOSSConfig(QtGui.QWidget):
             self.widgets[device['name']] = widgets
         layout = QtGui.QVBoxLayout()
         layout.addWidget(widget)
+        dropper = QtGui.QGroupBox(u'Drop into me!')
+        dropper.setMinimumHeight(160)
+        layout.addWidget(dropper)
+        buttons = QtGui.QHBoxLayout()
+        save = QtGui.QPushButton(u'Save')
+        cancel = QtGui.QPushButton(u'Cancel')
+        buttons.addWidget(save)
+        buttons.addStretch()
+        buttons.addWidget(cancel)
+        layout.addLayout(buttons)
         self.setLayout(layout)
         self.watcher.start()
     def chainer(self, device, name, ei, values):
