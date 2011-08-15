@@ -19,7 +19,7 @@ import sys
 import oss
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt, pyqtSignal
-from middleendv2 import QOSSWidget
+from middleendv2 import QOSSConfigWidget
 from signal2 import Signal
 from threading import Thread
 from time import sleep
@@ -57,11 +57,11 @@ class QOSSWatcher(Thread):
         self.running = False
 
 class QOSSConfig(QtGui.QDialog):
-    sliderUpdated = pyqtSignal(QOSSWidget, tuple)
-    peaksUpdated = pyqtSignal(QOSSWidget, tuple)
-    muteUpdated = pyqtSignal(QOSSWidget, bool)
-    modesUpdated = pyqtSignal(QOSSWidget, list, int)
-    onOffUpdated = pyqtSignal(QOSSWidget, bool)
+    sliderUpdated = pyqtSignal(QOSSConfigWidget, tuple)
+    peaksUpdated = pyqtSignal(QOSSConfigWidget, tuple)
+    muteUpdated = pyqtSignal(QOSSConfigWidget, bool)
+    modesUpdated = pyqtSignal(QOSSConfigWidget, list, int)
+    onOffUpdated = pyqtSignal(QOSSConfigWidget, bool)
     def __init__(self, oss_, parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.oss = oss_
@@ -113,7 +113,8 @@ class QOSSConfig(QtGui.QDialog):
                         name = ei['extname'][:-5]
                     else:
                         name = ei['extname']
-                    qosswidget = widgets.setdefault(name, QOSSWidget(name))
+                    qosswidget = widgets.setdefault(name,
+                            QOSSConfigWidget(name))
                     qosswidget.fd = fd
                     qosswidget.device = device['name']
                     try:

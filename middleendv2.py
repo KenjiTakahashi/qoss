@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import Qt, pyqtSignal
+from PyQt4.QtCore import Qt, pyqtSignal, QPointF
 
 class QOSSBar(QtGui.QProgressBar):
     def __init__(self, mini, maxi, curr, parent = None):
@@ -28,12 +28,38 @@ class QOSSBar(QtGui.QProgressBar):
         self.setMaximum(mini + maxi)
         self.setValue(curr)
 
-class QOSSMute(QtGui.QPushButton):
-    def __init__(self, value, parent = None):
-        QtGui.QPushButton.__init__(self, 'M', parent)
+class QOSSPushButton(QtGui.QPushButton):
+    def __init__(self, parent = None):
+        QtGui.QPushButton.__init__(self, parent)
+        self.path = QtGui.QPainterPath()
+        self.ypath = QtGui.QPainterPath()
+        self.npath = QtGui.QPainterPath()
         self.setFixedSize(21, 21)
         self.setCheckable(True)
+    def paintEvent(self, event):
+        QtGui.QPushButton.paintEvent(self, event)
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        mid = QtGui.QPalette().mid()
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(mid)
+        painter.drawPath(self.path)
+        painter.setPen(QtGui.QPen(mid, 2))
+        painter.setBrush(Qt.NoBrush)
+        if self.isChecked():
+            painter.drawPath(self.ypath)
+        else:
+            painter.drawPath(self.npath)
+
+class QOSSMute(QOSSPushButton):
+    def __init__(self, value, parent = None):
+        QOSSPushButton.__init__(self, parent)
         self.setChecked(value)
+        self.path.addRect(5, 8, 3, 5)
+        self.path.addPolygon(QtGui.QPolygonF(
+            [QPointF(8, 8), QPointF(8, 13), QPointF(12, 16), QPointF(12, 5)]))
+        self.npath.moveTo(14, 14)
+        self.npath.arcTo(10, 7, 6, 7, -50, 120)
 
 class QOSSSlider(QtGui.QSlider):
     def __init__(self, mini, maxi, curr, parent = None):
@@ -42,11 +68,14 @@ class QOSSSlider(QtGui.QSlider):
         self.setMaximum(mini + maxi)
         self.setValue(curr)
 
-class QOSSSliderButton(QtGui.QPushButton):
+class QOSSSliderButton(QOSSPushButton):
     def __init__(self, parent = None):
-        QtGui.QPushButton.__init__(self, parent)
-        self.setFixedSize(21, 21)
-        self.setCheckable(True)
+        QOSSPushButton.__init__(self, parent)
+        self.path.addRect(5, 10, 11, 6)
+        self.ypath.moveTo(15, 10)
+        self.ypath.arcTo(6, 5, 9, 11, 0, 180)
+        self.npath.moveTo(15, 10)
+        self.npath.arcTo(6, 5, 9, 11, 0, 130)
 
 class QOSSModes(QtGui.QComboBox):
     def __init__(self, modes, current, parent = None):
@@ -192,3 +221,7 @@ class QOSSWidget(QtGui.QGroupBox, object):
             self.layout.addWidget(self.modes, span, 0, 1, hCount)
         if self.onoff:
             self.layout.addWidget(self.onoff, span, 0, 1, hCount)
+
+class QOSSConfigWidget(QOSSWidget):
+    def __init__(self, name, parent = None):
+        QOSSWidget.__init__(self, name, parent)
