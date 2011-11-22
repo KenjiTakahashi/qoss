@@ -20,7 +20,7 @@ cdef class OSS:
     cdef int __numberOfDevices
     cdef list __mixerinfo
     def __cinit__(self):
-        cdef bytes devmixer = getenv('OSS_MIXERDEV') or '/dev/mixer'
+        cdef bytes devmixer = getenv('OSS_MIXERDEV') or b'/dev/mixer'
         cdef int gfd = fcntl.open(devmixer, fcntl.O_RDWR, 0)
         if gfd == -1:
             raise OSSError(strerror(errno))
@@ -97,9 +97,9 @@ cdef class OSS:
         for i in range(mei.nvalues):
             j = mei.strindex[i]
             if j != 0:
-                tmp.append(mei.strings[k:j - 1])
+                tmp.append(str(mei.strings[k:j - 1], 'utf-8'))
             k = j
-        tmp.append(mei.strings[k:])
+        tmp.append(str(mei.strings[k:], 'utf-8'))
         return tmp
     cpdef int getCurrentMode(self, int fd, dict ei) except -1:
         if ei['type'] == coss.MIXT_ENUM:
@@ -214,7 +214,7 @@ cdef class OSS:
             raise OSSError(strerror(errno))
     cdef dict __convertMixerinfo(self, coss.oss_mixerinfo mi):
         cdef dict tmp = dict()
-        tmp['name'] = mi.name
+        tmp['name'] = str(mi.name, 'utf-8')
         tmp['id'] = mi.id
         tmp['modify_counter'] = mi.modify_counter
         tmp['card_number'] = mi.card_number
@@ -242,7 +242,7 @@ cdef class OSS:
         tmp['enum_present'] = <char*>ei.enum_present
         tmp['control_no'] = ei.control_no
         tmp['desc'] = ei.desc
-        tmp['extname'] = ei.extname
+        tmp['extname'] = str(ei.extname, 'utf-8')
         tmp['update_counter'] = ei.update_counter
         tmp['rgbcolor'] = ei.rgbcolor
         return tmp

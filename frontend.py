@@ -63,7 +63,7 @@ class QOSSConfig(QtGui.QDialog):
     modesUpdated = pyqtSignal(QOSSConfigWidget, list, int)
     onOffUpdated = pyqtSignal(QOSSConfigWidget, bool)
     def __init__(self, oss_, parent = None):
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QDialog.__init__(self, parent)
         self.oss = oss_
         self.watcher = QOSSWatcher(self.oss)
         self.watcher.updated.connect(self.chainer)
@@ -113,8 +113,10 @@ class QOSSConfig(QtGui.QDialog):
                         name = ei['extname'][:-5]
                     else:
                         name = ei['extname']
-                    qosswidget = widgets.setdefault(name,
-                            QOSSConfigWidget(name))
+                    qosswidget = widgets.setdefault(
+                        name,
+                        QOSSConfigWidget(name)
+                    )
                     qosswidget.fd = fd
                     qosswidget.device = device['name']
                     try:
@@ -169,7 +171,7 @@ class QOSSConfig(QtGui.QDialog):
             self.widgets[device['name']] = widgets
         layout = QtGui.QVBoxLayout()
         layout.addWidget(widget)
-        dropper = QtGui.QGroupBox(u'Drop into me!')
+        dropper = QtGui.QGroupBox('Drop into me!')
         dropper.setMinimumHeight(160)
         layout.addWidget(dropper)
         buttons = QtGui.QDialogButtonBox()
